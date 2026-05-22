@@ -1,0 +1,23 @@
+{
+  "name": "analytics-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@10.9.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @analytics/web",
+    "build": "npm run build --workspace @analytics/web",
+    "lint": "npm run lint --workspace @analytics/web",
+    "typecheck": "npm run typecheck --workspace @analytics/web",
+    "api:dev": "uvicorn apps.api.app.main:app --reload",
+    "api:test": "pytest apps/api/tests"
+  },
+  "engines": {
+    "node": ">=20.10.0",
+    "npm": ">=10.0.0",
+    "python": ">=3.10"
+  }
+}
