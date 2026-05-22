@@ -19,7 +19,15 @@ const widgetTypes: Array<{ value: WidgetType; label: string; queryKey: WidgetQue
 const metrics = ["uploaded", "processed", "published", "downloads", "duration", "processing"];
 const dimensions = ["channel", "platform", "company", "user", "outputType"];
 
-export function AddWidgetModal({ onAddWidget }: { onAddWidget: (widget: WidgetSchema) => void }) {
+export function AddWidgetModal({
+  onAddWidget,
+  hiddenWidgets = [],
+  onRestoreWidget
+}: {
+  onAddWidget: (widget: WidgetSchema) => void;
+  hiddenWidgets?: WidgetSchema[];
+  onRestoreWidget?: (widgetId: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<WidgetType>("kpi");
   const [metric, setMetric] = useState("published");
@@ -34,7 +42,7 @@ export function AddWidgetModal({ onAddWidget }: { onAddWidget: (widget: WidgetSc
       title: `${selected.label}: ${metric}`,
       queryKey: selected.queryKey,
       size: type === "kpi" ? "sm" : "lg",
-      position: { i: id, x: 0, y: Infinity, w: type === "kpi" ? 2 : 6, h: type === "kpi" ? 2 : 5, minW: type === "kpi" ? 2 : 3, minH: type === "kpi" ? 2 : 4 },
+      position: { i: id, x: 0, y: 0, w: type === "kpi" ? 3 : 6, h: type === "kpi" ? 2 : 5, minW: type === "kpi" ? 2 : 3, minH: type === "kpi" ? 2 : 4 },
       visible: true,
       config: {
         metric,
@@ -66,6 +74,26 @@ export function AddWidgetModal({ onAddWidget }: { onAddWidget: (widget: WidgetSc
               </Button>
             </div>
             <div className="mt-5 grid gap-4">
+              {hiddenWidgets.length ? (
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                  <div className="text-xs font-black uppercase tracking-wide text-slate-500">Restore hidden widgets</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {hiddenWidgets.map((widget) => (
+                      <button
+                        key={widget.id}
+                        type="button"
+                        className="rounded-full border border-white/10 bg-[#2d3147] px-3 py-1.5 text-xs font-bold text-slate-200 transition hover:bg-white/10"
+                        onClick={() => {
+                          onRestoreWidget?.(widget.id);
+                          setOpen(false);
+                        }}
+                      >
+                        {widget.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <Select label="Widget Type" value={type} options={widgetTypes.map((item) => ({ value: item.value, label: item.label }))} onChange={(value) => setType(value as WidgetType)} />
               <Select label="Metric" value={metric} options={metrics.map((item) => ({ value: item, label: item }))} onChange={setMetric} />
               <Select label="Dimension" value={dimension} options={dimensions.map((item) => ({ value: item, label: item }))} onChange={setDimension} />

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 
 import { defaultContextB, defaultDashboardState, ensureContextPair } from "@/lib/compare/defaults";
 import { readDashboardStateFromUrl, writeDashboardStateToUrl } from "@/lib/compare/url-state";
+import { writeLocalStorage } from "@/lib/storage/safe-local-storage";
 import type { CompareBy, DashboardContext, DashboardState, DateRange, ReportFilterState } from "@/lib/widgets/types";
 
 type DashboardAction =
@@ -12,19 +13,20 @@ type DashboardAction =
   | { type: "setCompareBy"; compareBy: CompareBy }
   | { type: "setViewMode"; viewMode: DashboardState["viewMode"] }
   | { type: "setSyncFilters"; syncFilters: boolean }
+  | { type: "setSyncHover"; syncHover: boolean }
   | { type: "updateContext"; contextId: string; patch: Omit<Partial<DashboardContext>, "filters"> & { filters?: Partial<ReportFilterState> } }
   | { type: "cloneLeftToRight" }
   | { type: "swapContexts" }
   | { type: "reset" };
 
-const STORAGE_KEY = "frammer-dashboard:comparison-state:v2";
+const STORAGE_KEY = "frammer-dashboard:comparison-state:v3";
 
 export function useComparisonDashboardState() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [state, dispatch] = useReducer(reducer, defaultDashboardState);
 
   useEffect(() => {
-    const storedState = readDashboardStateFromUrl() ?? readDashboardStateFromStorage();
+    const storedState = readDashboardStateFromUrl();
     if (storedState) {
       dispatch({ type: "hydrate", state: storedState });
     }
@@ -33,7 +35,7 @@ export function useComparisonDashboardState() {
 
   useEffect(() => {
     if (!isHydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    writeLocalStorage(STORAGE_KEY, JSON.stringify(state));
     writeDashboardStateToUrl(state);
   }, [isHydrated, state]);
 
@@ -73,6 +75,7 @@ export function useComparisonDashboardState() {
     setCompareBy: (compareBy: CompareBy) => dispatch({ type: "setCompareBy", compareBy }),
     setViewMode: (viewMode: DashboardState["viewMode"]) => dispatch({ type: "setViewMode", viewMode }),
     setSyncFilters: (syncFilters: boolean) => dispatch({ type: "setSyncFilters", syncFilters }),
+    setSyncHover: (syncHover: boolean) => dispatch({ type: "setSyncHover", syncHover }),
     cloneLeftToRight: () => dispatch({ type: "cloneLeftToRight" }),
     swapContexts: () => dispatch({ type: "swapContexts" }),
     resetComparison: () => dispatch({ type: "reset" })
@@ -94,6 +97,7 @@ function reducer(state: DashboardState, action: DashboardAction): DashboardState
   if (action.type === "setCompareBy") return { ...state, compareBy: action.compareBy };
   if (action.type === "setViewMode") return { ...state, viewMode: action.viewMode };
   if (action.type === "setSyncFilters") return { ...state, syncFilters: action.syncFilters };
+  if (action.type === "setSyncHover") return { ...state, syncHover: action.syncHover };
 
   if (action.type === "updateContext") {
     const contexts = ensureContextPair(state).contexts.map((context) => {
@@ -112,7 +116,8 @@ function reducer(state: DashboardState, action: DashboardAction): DashboardState
     if (state.syncFilters && action.contextId === contexts[0]?.id && contexts[1]) {
       contexts[1] = {
         ...contexts[1],
-        filters: contexts[0].filters
+        filters: contexts[0].filters,
+        dateRange: contexts[0].dateRange
       };
     }
 
@@ -149,15 +154,4 @@ function reducer(state: DashboardState, action: DashboardAction): DashboardState
   }
 
   return state;
-}
-
-function readDashboardStateFromStorage() {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? ensureContextPair(JSON.parse(raw) as DashboardState) : null;
-  } catch {
-    return null;
-  }
 }

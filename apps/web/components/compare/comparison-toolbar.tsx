@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, Copy, GitCompareArrows, Layers2, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeftRight, Copy, Crosshair, GitCompareArrows, Layers2, RotateCcw, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,12 @@ export function ComparisonToolbar({
   compareBy,
   viewMode,
   syncFilters,
+  syncHover,
   onCompareModeChange,
   onCompareByChange,
   onViewModeChange,
   onSyncFiltersChange,
+  onSyncHoverChange,
   onCloneLeftToRight,
   onSwapContexts,
   onReset
@@ -23,10 +25,12 @@ export function ComparisonToolbar({
   compareBy: CompareBy;
   viewMode: ComparisonViewMode;
   syncFilters: boolean;
+  syncHover: boolean;
   onCompareModeChange: (enabled: boolean) => void;
   onCompareByChange: (value: CompareBy) => void;
   onViewModeChange: (value: ComparisonViewMode) => void;
   onSyncFiltersChange: (enabled: boolean) => void;
+  onSyncHoverChange: (enabled: boolean) => void;
   onCloneLeftToRight: () => void;
   onSwapContexts: () => void;
   onReset: () => void;
@@ -94,7 +98,17 @@ export function ComparisonToolbar({
             }`}
           >
             <Layers2 className="h-4 w-4" />
-            Sync filters
+            Sync filters/date
+          </button>
+          <button
+            type="button"
+            onClick={() => onSyncHoverChange(!syncHover)}
+            className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm font-bold transition ${
+              syncHover ? "border-sky-300/40 bg-sky-400/10 text-sky-100" : "border-white/10 bg-[#2d3147] text-slate-300 hover:bg-white/10"
+            }`}
+          >
+            <Crosshair className="h-4 w-4" />
+            Sync hover
           </button>
         </div>
       </div>

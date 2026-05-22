@@ -23,6 +23,13 @@ export function writeDashboardStateToUrl(state: DashboardState) {
   if (typeof window === "undefined") return;
 
   const url = new URL(window.location.href);
+  if (!state.compareMode) {
+    url.searchParams.delete(PARAM_NAME);
+    const query = url.searchParams.toString();
+    window.history.replaceState(null, "", query ? `${url.pathname}?${query}` : url.pathname);
+    return;
+  }
+
   const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
   url.searchParams.set(PARAM_NAME, encoded);
   window.history.replaceState(null, "", `${url.pathname}?${url.searchParams.toString()}`);

@@ -35,7 +35,7 @@ export function AppSidebar() {
 
           return (
             <Link
-              key={item.href}
+              key={`${item.href}-${item.label}`}
               href={item.href}
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-white/5 hover:text-white",

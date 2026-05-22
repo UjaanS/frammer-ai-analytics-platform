@@ -43,19 +43,25 @@ export const defaultDashboardState: DashboardState = {
   compareBy: "time",
   viewMode: "split",
   syncFilters: false,
+  syncHover: true,
   contexts: [defaultContextA]
 };
 
 export function ensureContextPair(state: DashboardState): DashboardState {
-  if (!state.compareMode) {
+  const normalizedState = {
+    ...state,
+    syncHover: state.syncHover ?? defaultDashboardState.syncHover
+  };
+
+  if (!normalizedState.compareMode) {
     return {
-      ...state,
-      contexts: [state.contexts[0] ?? defaultContextA]
+      ...normalizedState,
+      contexts: [normalizedState.contexts[0] ?? defaultContextA]
     };
   }
 
   return {
-    ...state,
-    contexts: [state.contexts[0] ?? defaultContextA, state.contexts[1] ?? defaultContextB]
+    ...normalizedState,
+    contexts: [normalizedState.contexts[0] ?? defaultContextA, normalizedState.contexts[1] ?? defaultContextB]
   };
 }

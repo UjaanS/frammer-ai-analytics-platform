@@ -32,6 +32,7 @@ export type DashboardState = {
   compareBy: CompareBy;
   viewMode: ComparisonViewMode;
   syncFilters: boolean;
+  syncHover: boolean;
   contexts: DashboardContext[];
 };
 
@@ -92,5 +93,7 @@ export type WidgetDataContext = {
   comparisonContext?: DashboardContext;
   compareMode: boolean;
   viewMode: ComparisonViewMode;
+  syncHover?: boolean;
   setWidgetConfig: (widgetId: string, config: Partial<WidgetConfig>) => void;
+  removeWidget?: (widgetId: string) => void;
 };

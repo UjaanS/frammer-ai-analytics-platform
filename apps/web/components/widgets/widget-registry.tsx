@@ -1,6 +1,7 @@
 "use client";
 
-import { Download, FileDown, Search, Sparkles } from "lucide-react";
+import { Download, FileDown, Search, Sparkles, X } from "lucide-react";
+import { useState } from "react";
 import {
   Bar,
   BarChart,
@@ -31,6 +32,8 @@ import {
   platformPalette,
   timeGroupLabel
 } from "@/lib/widgets/dashboard-data";
+import { cn } from "@/lib/utils";
+import { ENABLE_NEW_GRID_SYSTEM } from "@/src/modules/analytics/layout";
 import type { WidgetDataContext, WidgetSchema } from "@/lib/widgets/types";
 import type { VideoRecord } from "@/lib/analytics/types";
 
@@ -55,6 +58,7 @@ export function WidgetRenderer({ widget, context }: WidgetComponentProps) {
 }
 
 function KpiWidget({ widget, context }: WidgetComponentProps) {
+  const [open, setOpen] = useState(false);
   const data = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as Record<string, number>;
   const comparisonData = context.comparisonContext
     ? (getWidgetData(widget.queryKey, widget.config, context.comparisonContext) as Record<string, number>)
@@ -65,20 +69,91 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
   const delta = comparisonValue === undefined ? null : calculateDelta(rawValue, comparisonValue);
   const value = metric.includes("Duration") || metric === "avgProcessing" ? formatMinutes(rawValue) : metric === "publishRate" ? `${rawValue}%` : Math.round(rawValue).toLocaleString();
   const detail = getKpiDetail(metric, data);
+  const trendData = getWidgetData("timeTrend", { ...widget.config, timeGroup: "day" }, context.dashboardContext) as Array<Record<string, string | number>>;
+  const trendKey = getTrendKey(metric);
 
   return (
-    <section className="widget-drag-handle h-full cursor-move overflow-hidden rounded-lg border border-white/10 bg-[#24283d] p-5 shadow-lg shadow-black/20">
-      <h3 className="text-lg font-bold text-slate-400">{widget.title}</h3>
-      <div className="mt-5 text-3xl font-black text-white">{value}</div>
-      <p className="mt-2 text-sm font-semibold text-slate-300">{detail}</p>
-      {delta ? (
-        <div className={`mt-4 inline-flex rounded-full px-3 py-1 text-xs font-black ${delta.direction === "down" ? "bg-rose-500/15 text-rose-200" : "bg-emerald-500/15 text-emerald-200"}`}>
-          {delta.direction === "up" ? "↑" : delta.direction === "down" ? "↓" : "→"} {delta.delta > 0 ? "+" : ""}
-          {formatDeltaValue(delta.delta, metric)} · {delta.percent > 0 ? "+" : ""}
-          {delta.percent}% vs peer
+    <>
+      <section
+        className={cn(
+          "widget-drag-handle group relative h-full cursor-move overflow-hidden rounded-lg border border-white/10 bg-[#24283d] shadow-lg shadow-black/20 transition hover:border-white/20",
+          ENABLE_NEW_GRID_SYSTEM ? "p-4" : "p-5"
+        )}
+        role="button"
+        tabIndex={0}
+        onClick={() => setOpen(true)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") setOpen(true);
+        }}
+      >
+        {context.removeWidget ? (
+          <button
+            type="button"
+            title="Remove widget"
+            aria-label="Remove widget"
+            className="widget-interactive absolute right-3 top-3 inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 opacity-0 transition hover:bg-rose-500/15 hover:text-rose-100 group-hover:opacity-100"
+            onClick={(event) => {
+              event.stopPropagation();
+              context.removeWidget?.(widget.id);
+            }}
+            onMouseDown={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
+        <h3 className={cn("font-bold text-slate-400", ENABLE_NEW_GRID_SYSTEM ? "text-base" : "text-lg")}>{widget.title}</h3>
+        <div className={cn("font-black text-white", ENABLE_NEW_GRID_SYSTEM ? "mt-3 text-2xl" : "mt-5 text-3xl")}>{value}</div>
+        <p className="mt-2 text-sm font-semibold text-slate-300">{detail}</p>
+        {delta ? (
+          <div className={`mt-4 inline-flex rounded-full px-3 py-1 text-xs font-black ${delta.direction === "down" ? "bg-rose-500/15 text-rose-200" : "bg-emerald-500/15 text-emerald-200"}`}>
+            {delta.direction === "up" ? "↑" : delta.direction === "down" ? "↓" : "→"} {delta.delta > 0 ? "+" : ""}
+            {formatDeltaValue(delta.delta, metric)} · {delta.percent > 0 ? "+" : ""}
+            {delta.percent}% vs peer
+          </div>
+        ) : null}
+      </section>
+
+      {open ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setOpen(false)}>
+          <div className="widget-interactive w-full max-w-3xl rounded-lg border border-white/10 bg-[#24283d] p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-black uppercase tracking-wide text-[#ef405b]">Metric breakdown</div>
+                <h2 className="mt-1 text-2xl font-black text-white">{widget.title}</h2>
+                <p className="mt-1 text-sm text-slate-400">{context.dashboardContext.label} · {detail}</p>
+              </div>
+              <button type="button" className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" onClick={() => setOpen(false)}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
+              <div className="rounded-lg border border-white/10 bg-[#2d3147] p-4">
+                <div className="text-sm font-bold text-slate-400">Current value</div>
+                <div className="mt-3 text-4xl font-black text-white">{value}</div>
+                <p className="mt-2 text-sm font-semibold text-slate-300">{detail}</p>
+                {delta ? (
+                  <div className="mt-4 rounded-lg bg-white/[0.04] p-3 text-sm font-bold text-slate-200">
+                    {delta.percent > 0 ? "+" : ""}{delta.percent}% vs comparison context
+                  </div>
+                ) : null}
+              </div>
+              <WhiteChartCanvas>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendData} margin={{ left: 8, right: 16, top: 12, bottom: 8 }}>
+                    <CartesianGrid stroke="#e8e8ee" />
+                    <XAxis dataKey="label" tick={{ fill: "#4b5563", fontSize: 12 }} tickLine={false} />
+                    <YAxis tick={{ fill: "#4b5563", fontSize: 12 }} tickLine={false} />
+                    <Tooltip formatter={(item) => formatMetricValue(Number(item), trendKey.includes("Duration") ? "duration" : "count")} />
+                    <Line type="monotone" dataKey={trendKey} name={widget.title} stroke={chartColors.published} strokeWidth={3} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </WhiteChartCanvas>
+            </div>
+          </div>
         </div>
       ) : null}
-    </section>
+    </>
   );
 }
 
@@ -96,6 +171,9 @@ function LineChartWidget({ widget, context }: WidgetComponentProps) {
     <WidgetChrome
       title={widget.title}
       description={widget.config.description}
+      exportRows={data.map((row) => ({ ...row, context: context.dashboardContext.label }))}
+      exportFileName={widget.title}
+      onRemove={context.removeWidget ? () => context.removeWidget?.(widget.id) : undefined}
       actions={
         <div className="flex flex-wrap gap-3">
           <TimeGroupToggle value={timeGroup} onChange={(value) => context.setWidgetConfig(widget.id, { timeGroup: value })} />
@@ -105,7 +183,7 @@ function LineChartWidget({ widget, context }: WidgetComponentProps) {
     >
       <WhiteChartCanvas>
         <ResponsiveContainer width="100%" height="100%">
-            <LineChart syncId={widget.id} data={overlayData} margin={{ left: 12, right: 28, top: 16, bottom: 8 }}>
+            <LineChart syncId={getChartSyncId(widget, context)} data={overlayData} margin={{ left: 12, right: 28, top: 16, bottom: 8 }}>
             <CartesianGrid stroke="#e8e8ee" />
             <XAxis dataKey="label" tick={{ fill: "#4b5563", fontSize: 12 }} tickLine={false} />
             <YAxis tick={{ fill: "#4b5563", fontSize: 12 }} tickLine={false} />
@@ -142,12 +220,15 @@ function BarChartWidget({ widget, context }: WidgetComponentProps) {
     <WidgetChrome
       title={widget.title}
       description={widget.config.description}
+      exportRows={data.map((row) => ({ ...row, context: context.dashboardContext.label }))}
+      exportFileName={widget.title}
+      onRemove={context.removeWidget ? () => context.removeWidget?.(widget.id) : undefined}
       actions={<ModeToggle value={mode} onChange={(value) => context.setWidgetConfig(widget.id, { metricMode: value })} />}
     >
       <WhiteChartCanvas>
         <ResponsiveContainer width="100%" height="100%">
           {isPlatform ? (
-            <BarChart syncId={widget.id} data={platformData} margin={{ left: 12, right: 28, top: 16, bottom: 8 }}>
+            <BarChart syncId={getChartSyncId(widget, context)} data={platformData} margin={{ left: 12, right: 28, top: 16, bottom: 8 }}>
               <CartesianGrid stroke="#e8e8ee" />
               <XAxis dataKey="channel" tick={{ fill: "#374151", fontSize: 12 }} tickLine={false} />
               <YAxis tick={{ fill: "#4b5563", fontSize: 12 }} tickLine={false} />
@@ -177,7 +258,7 @@ function BarChartWidget({ widget, context }: WidgetComponentProps) {
               })}
             </BarChart>
           ) : (
-            <BarChart syncId={widget.id} data={overlayData} layout="vertical" margin={{ left: 42, right: 28, top: 16, bottom: 8 }}>
+            <BarChart syncId={getChartSyncId(widget, context)} data={overlayData} layout="vertical" margin={{ left: 42, right: 28, top: 16, bottom: 8 }}>
               <CartesianGrid stroke="#e8e8ee" horizontal={false} />
               <XAxis type="number" tick={{ fill: "#4b5563", fontSize: 12 }} tickLine={false} />
               <YAxis dataKey="channel" type="category" tick={{ fill: "#374151", fontSize: 12 }} tickLine={false} width={110} />
@@ -200,7 +281,13 @@ function PieChartWidget({ widget, context }: WidgetComponentProps) {
   const data = rows.slice(0, 5).map((row) => ({ name: String(row.channel), value: Number(row.published) }));
 
   return (
-    <WidgetChrome title={widget.title} description={widget.config.description}>
+    <WidgetChrome
+      title={widget.title}
+      description={widget.config.description}
+      exportRows={data.map((row) => ({ ...row, context: context.dashboardContext.label }))}
+      exportFileName={widget.title}
+      onRemove={context.removeWidget ? () => context.removeWidget?.(widget.id) : undefined}
+    >
       <WhiteChartCanvas>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -228,7 +315,13 @@ function TableWidget({ widget, context }: WidgetComponentProps) {
   const { columns, rows } = buildWidgetTable(widget, data, mode);
 
   return (
-    <WidgetChrome title={widget.title} description={widget.config.description}>
+    <WidgetChrome
+      title={widget.title}
+      description={widget.config.description}
+      exportRows={rows.map((row) => Object.fromEntries(columns.map((column, index) => [column, row[index]])))}
+      exportFileName={widget.title}
+      onRemove={context.removeWidget ? () => context.removeWidget?.(widget.id) : undefined}
+    >
       <SimpleDataTable columns={columns} rows={rows} />
     </WidgetChrome>
   );
@@ -253,6 +346,9 @@ function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: W
     <WidgetChrome
       title={widget.title}
       description="A simple searchable list of recent video records."
+      exportRows={exportRows}
+      exportFileName={widget.title}
+      onRemove={context.removeWidget ? () => context.removeWidget?.(widget.id) : undefined}
       actions={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <label className="relative">
@@ -321,7 +417,13 @@ function HeatmapWidget({ widget, context }: WidgetComponentProps) {
   const max = Math.max(...data.flat());
 
   return (
-    <WidgetChrome title={widget.title} description="Placeholder extension point for future heatmap query results.">
+    <WidgetChrome
+      title={widget.title}
+      description="Placeholder extension point for future heatmap query results."
+      exportRows={data.flat().map((value, index) => ({ cell: index + 1, value, context: context.dashboardContext.label }))}
+      exportFileName={widget.title}
+      onRemove={context.removeWidget ? () => context.removeWidget?.(widget.id) : undefined}
+    >
       <div className="grid grid-cols-4 gap-2">
         {data.flat().map((value, index) => (
           <div
@@ -341,7 +443,13 @@ function AiInsightWidget({ widget, context }: WidgetComponentProps) {
   const data = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as { title: string; body: string };
 
   return (
-    <WidgetChrome title={widget.title} description="AI insight card placeholder for future NLQ-generated widgets.">
+    <WidgetChrome
+      title={widget.title}
+      description="AI insight card placeholder for future NLQ-generated widgets."
+      exportRows={[{ title: data.title, insight: data.body, context: context.dashboardContext.label }]}
+      exportFileName={widget.title}
+      onRemove={context.removeWidget ? () => context.removeWidget?.(widget.id) : undefined}
+    >
       <div className="rounded-lg bg-[#2d3147] p-4">
         <div className="flex items-center gap-2 text-sm font-black text-[#ef405b]">
           <Sparkles className="h-4 w-4" />
@@ -385,6 +493,19 @@ function buildWidgetTable(widget: WidgetSchema, data: Array<Record<string, strin
         : [String(row.channel), formatMinutes(Number(row.uploadedDuration)), formatMinutes(Number(row.processedDuration)), formatMinutes(Number(row.publishedDuration))]
     )
   };
+}
+
+function getTrendKey(metric: string) {
+  if (metric === "processed") return "processed";
+  if (metric === "published" || metric === "publishRate") return "published";
+  if (metric === "avgProcessing") return "processedDuration";
+  if (metric.includes("Duration")) return metric;
+  return "uploaded";
+}
+
+function getChartSyncId(widget: WidgetSchema, context: WidgetDataContext) {
+  if (!context.compareMode || context.viewMode !== "split") return widget.id;
+  return context.syncHover === false ? undefined : widget.id;
 }
 
 function getKpiDetail(metric: string, data: Record<string, number>) {
