@@ -106,10 +106,10 @@ export function buildTimeRows(records: VideoRecord[], group: TimeGroup) {
     const date = new Date(`${record.uploadedAt}T00:00:00`);
     const label =
       group === "day"
-        ? `${String(date.getDate()).padStart(2, "0")}-05-2026`
+        ? date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
         : group === "month"
-          ? "May, 2026"
-          : "2026";
+          ? date.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+          : String(date.getFullYear());
     const row = grouped.get(label) ?? createEmptyTimeRow(label);
     row.uploaded += 1;
     row.uploadedDuration += record.durationMinutes;

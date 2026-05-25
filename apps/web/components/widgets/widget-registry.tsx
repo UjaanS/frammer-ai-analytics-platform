@@ -328,8 +328,24 @@ function TableWidget({ widget, context }: WidgetComponentProps) {
 }
 
 function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: WidgetDataContext }) {
+  const [searchQuery, setSearchQuery] = useState("");
   const videos = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as VideoRecord[];
-  const exportRows = videos.map((video) => ({
+
+  const filteredVideos = searchQuery.trim()
+    ? videos.filter((video) => {
+        const query = searchQuery.toLowerCase();
+        return (
+          video.title.toLowerCase().includes(query) ||
+          video.channel.toLowerCase().includes(query) ||
+          video.user.toLowerCase().includes(query) ||
+          video.team.toLowerCase().includes(query) ||
+          video.inputType.toLowerCase().includes(query) ||
+          video.outputType.toLowerCase().includes(query)
+        );
+      })
+    : videos;
+
+  const exportRows = filteredVideos.map((video) => ({
     headline: video.title,
     url: "Web URL",
     published: video.publishedStatus === "Published" ? "Yes" : "No",
@@ -345,7 +361,7 @@ function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: W
   return (
     <WidgetChrome
       title={widget.title}
-      description="A simple searchable list of recent video records."
+      description={`A simple searchable list of recent video records.${filteredVideos.length !== videos.length ? ` Showing ${filteredVideos.length} of ${videos.length}.` : ""}`}
       exportRows={exportRows}
       exportFileName={widget.title}
       onRemove={context.removeWidget ? () => context.removeWidget?.(widget.id) : undefined}
@@ -355,6 +371,8 @@ function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: W
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               placeholder="Search videos"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
               className="h-10 rounded-md border border-white/10 bg-[#2d3147] pl-9 pr-3 text-sm text-white outline-none focus:ring-2 focus:ring-primary"
             />
           </label>
@@ -391,20 +409,28 @@ function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: W
             </tr>
           </thead>
           <tbody>
-            {videos.map((video) => (
-              <tr key={video.id} className="border-b border-slate-500/70 odd:bg-white/[0.03]">
-                <td className="max-w-[28rem] px-3 py-3 font-semibold text-blue-300">{video.title}</td>
-                <td className="px-3 py-3 font-semibold text-blue-300">Web URL</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.publishedStatus === "Published" ? "Yes" : "No"}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.downloads > 0 ? "Yes" : "No"}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.team}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.inputType}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.outputType}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.user}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.id.replace("VID-", "")}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.channel}</td>
+            {filteredVideos.length ? (
+              filteredVideos.map((video) => (
+                <tr key={video.id} className="border-b border-slate-500/70 odd:bg-white/[0.03]">
+                  <td className="max-w-[28rem] px-3 py-3 font-semibold text-blue-300">{video.title}</td>
+                  <td className="px-3 py-3 font-semibold text-blue-300">Web URL</td>
+                  <td className="px-3 py-3 font-semibold text-slate-100">{video.publishedStatus === "Published" ? "Yes" : "No"}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-100">{video.downloads > 0 ? "Yes" : "No"}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-100">{video.team}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-100">{video.inputType}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-100">{video.outputType}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-100">{video.user}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-100">{video.id.replace("VID-", "")}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-100">{video.channel}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={10} className="px-3 py-10 text-center text-sm text-slate-400">
+                  No videos match &ldquo;{searchQuery}&rdquo;. Try a different search term.
+                </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

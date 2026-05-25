@@ -1,6 +1,7 @@
 "use client";
 
-import { Menu, SunMedium } from "lucide-react";
+import { Menu, Moon, SunMedium } from "lucide-react";
+import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -22,8 +23,13 @@ type AppHeaderProps = {
 
 export function AppHeader({ title, actions }: AppHeaderProps) {
   const pathname = usePathname();
-  const currentItem = sidebarNavigation.find((item) => item.href === pathname);
+  const { theme, setTheme } = useTheme();
+  const currentItem = sidebarNavigation.find((item) => item.href.split("#")[0] === pathname);
   const resolvedTitle = title ?? currentItem?.title ?? "Dashboard";
+
+  function toggleTheme() {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-[84px] items-center justify-between border-b border-white/5 bg-[#202438] px-4 backdrop-blur supports-[backdrop-filter]:bg-[#202438]/95 lg:px-9">
@@ -51,8 +57,14 @@ export function AppHeader({ title, actions }: AppHeaderProps) {
           <div className="font-semibold text-slate-300">AAA - Frammer AI</div>
           <div className="font-bold text-white">Channel-Frammer AI</div>
         </div>
-        <Button aria-label="Theme" size="icon" variant="ghost" className="rounded-full bg-white/5 text-slate-200 hover:bg-white/10">
-          <SunMedium className="h-5 w-5" />
+        <Button
+          aria-label="Toggle theme"
+          size="icon"
+          variant="ghost"
+          className="rounded-full bg-white/5 text-slate-200 hover:bg-white/10"
+          onClick={toggleTheme}
+        >
+          {theme === "dark" ? <SunMedium className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </Button>
       </div>
     </header>

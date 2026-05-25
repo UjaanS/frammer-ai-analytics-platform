@@ -2,20 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Brain, CalendarDays, CloudUpload, Command, LogOut, Menu, MonitorPlay, Settings, UserCircle } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { sidebarNavigation } from "@/config/navigation";
 import { cn } from "@/lib/utils";
-
-const railItems = [
-  { href: "/executive-summary", icon: UserCircle, label: "Analytics" },
-  { href: "/executive-summary#trend", icon: Command, label: "Trends" },
-  { href: "/executive-summary#channels", icon: Brain, label: "Channels" },
-  { href: "/executive-summary#platforms", icon: MonitorPlay, label: "Platforms" },
-  { href: "/executive-summary#videos", icon: CloudUpload, label: "Videos" },
-  { href: "/executive-summary", icon: CalendarDays, label: "Calendar" },
-  { href: "/settings", icon: Settings, label: "Settings" }
-];
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -28,20 +19,21 @@ export function AppSidebar() {
         </Button>
       </div>
       <nav className="flex flex-1 flex-col items-center gap-4 py-5">
-        {railItems.map((item) => {
+        {sidebarNavigation.map((item) => {
+          // Strip hash anchor so we can compare against pathname cleanly
           const itemPath = item.href.split("#")[0];
-          const isActive = itemPath === pathname && item.href === "/executive-summary";
+          const isActive = pathname === itemPath;
           const Icon = item.icon;
 
           return (
             <Link
-              key={`${item.href}-${item.label}`}
+              key={item.href}
               href={item.href}
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-white/5 hover:text-white",
                 isActive && "bg-[#ef405b] text-white shadow-lg shadow-[#ef405b]/25"
               )}
-              title={item.label}
+              title={item.title}
             >
               <Icon className="h-5 w-5" />
             </Link>
