@@ -1,9 +1,7 @@
-import type { Layout } from "react-grid-layout";
-
 import type { WidgetSchema } from "@/lib/widgets/types";
-import type { AnalyticsLayoutMode, DashboardGridConfig, DashboardGridItem } from "./layoutConfig";
 import { getWidgetGridSpan } from "./layoutConfig";
 
+<<<<<<< HEAD
 export function createGridConfig(dashboardId: string, widgets: WidgetSchema[]): DashboardGridConfig {
   return {
     dashboardId,
@@ -106,11 +104,17 @@ function sanitizeDashboardLayout(widget: WidgetSchema): Layout {
   };
 }
 
+=======
+// Insert a newly-added or restored widget at the top of the grid, pushing
+// every other visible widget down by the inserted widget's height so they
+// don't overlap. The grid then vertically compacts via react-grid-layout's
+// compactType="vertical" on the next render.
+>>>>>>> origin/claude/elated-galileo-73ca50
 export function insertWidgetAtTop(widgets: WidgetSchema[], widgetId: string): WidgetSchema[] {
   const target = widgets.find((widget) => widget.id === widgetId);
   if (!target) return widgets;
 
-  const span = getWidgetGridSpan(target, "dashboard");
+  const span = getWidgetGridSpan(target);
   const targetPosition = {
     ...target.position,
     i: target.id,

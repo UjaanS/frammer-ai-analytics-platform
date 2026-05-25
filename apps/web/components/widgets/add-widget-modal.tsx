@@ -62,27 +62,27 @@ export function AddWidgetModal({
         Add Widget
       </Button>
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-lg border border-white/10 bg-[#24283d] p-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 dark:bg-black/60">
+          <div className="w-full max-w-lg rounded-lg border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#24283d]">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-xl font-black text-white">Add Widget</h2>
-                <p className="mt-1 text-sm text-slate-400">Choose a widget type, metric, and dimension.</p>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white">Add Widget</h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Choose a widget type, metric, and dimension.</p>
               </div>
-              <Button size="icon" variant="ghost" className="text-slate-300" onClick={() => setOpen(false)}>
+              <Button size="icon" variant="ghost" className="text-slate-500 dark:text-slate-300" onClick={() => setOpen(false)}>
                 <X className="h-5 w-5" />
               </Button>
             </div>
             <div className="mt-5 grid gap-4">
               {hiddenWidgets.length ? (
-                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                  <div className="text-xs font-black uppercase tracking-wide text-slate-500">Restore hidden widgets</div>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/[0.03]">
+                  <div className="text-xs font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">Restore hidden widgets</div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {hiddenWidgets.map((widget) => (
                       <button
                         key={widget.id}
                         type="button"
-                        className="rounded-full border border-white/10 bg-[#2d3147] px-3 py-1.5 text-xs font-bold text-slate-200 transition hover:bg-white/10"
+                        className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:bg-[#2d3147] dark:text-slate-200 dark:hover:bg-white/10"
                         onClick={() => {
                           onRestoreWidget?.(widget.id);
                           setOpen(false);
@@ -99,7 +99,7 @@ export function AddWidgetModal({
               <Select label="Dimension" value={dimension} options={dimensions.map((item) => ({ value: item, label: item }))} onChange={setDimension} />
             </div>
             <div className="mt-6 flex justify-end gap-3">
-              <Button variant="ghost" className="text-slate-300" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button variant="ghost" className="text-slate-700 dark:text-slate-300" onClick={() => setOpen(false)}>Cancel</Button>
               <Button className="bg-[#d3455d] font-bold text-white hover:bg-[#e14e68]" onClick={createWidget}>Save Widget</Button>
             </div>
           </div>
@@ -121,12 +121,12 @@ function Select({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-bold text-slate-200">
+    <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
       {label}
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 rounded-md border border-white/10 bg-[#2d3147] px-3 text-sm font-semibold text-white outline-none focus:ring-2 focus:ring-primary"
+        className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-primary dark:border-white/10 dark:bg-[#2d3147] dark:text-white"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>

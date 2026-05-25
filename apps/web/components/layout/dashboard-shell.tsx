@@ -17,7 +17,7 @@ export function DashboardShell({ children, title, actions }: DashboardShellProps
       </div>
       <div className="lg:pl-[72px]">
         <AppHeader title={title} actions={actions} />
-        <main className="mx-auto w-full max-w-[1840px] px-4 py-6 lg:px-12">{children}</main>
+        <main className="mx-auto w-full max-w-[1840px] px-4 py-5 lg:px-8">{children}</main>
       </div>
     </div>
   );

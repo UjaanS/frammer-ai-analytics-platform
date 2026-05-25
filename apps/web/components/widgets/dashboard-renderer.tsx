@@ -1,7 +1,11 @@
 "use client";
 
 import { RotateCcw } from "lucide-react";
+<<<<<<< HEAD
 import { memo, useCallback, useEffect, useMemo } from "react";
+=======
+import { useCallback, useMemo } from "react";
+>>>>>>> origin/claude/elated-galileo-73ca50
 import { Responsive, WidthProvider } from "react-grid-layout";
 import type { Layout } from "react-grid-layout";
 
@@ -9,16 +13,27 @@ import { AddWidgetModal } from "@/components/widgets/add-widget-modal";
 import { WidgetRenderer } from "@/components/widgets/widget-registry";
 import { Button } from "@/components/ui/button";
 import { useDashboardState } from "@/hooks/use-dashboard-state";
-import {
-  dashboardGridDensity,
-  ENABLE_NEW_GRID_SYSTEM,
-  normalizeWidgetLayouts,
-  useAnalyticsLayoutStore,
-  type AnalyticsLayoutMode
-} from "@/src/modules/analytics/layout";
-import type { DashboardContext, DashboardDefinition, ComparisonViewMode, WidgetConfig, WidgetSchema } from "@/lib/widgets/types";
+import { dashboardGridDensity } from "@/src/modules/analytics/layout";
+import type {
+  ComparisonViewMode,
+  DashboardContext,
+  DashboardDefinition,
+  WidgetConfig,
+  WidgetSchema
+} from "@/lib/widgets/types";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
+
+// Single, explicit grid config — no flags, no branching.
+const GRID_BREAKPOINTS = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
+const GRID_COLUMNS = { lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 };
+const { rowHeight: GRID_ROW_HEIGHT, margin: GRID_MARGIN } = dashboardGridDensity.compact;
+
+// Drag is initiated from elements matching `.widget-drag-handle`.
+// Any descendant matching `draggableCancel` aborts drag — these are the
+// interactive zones that must remain clickable inside a drag handle.
+const DRAGGABLE_CANCEL =
+  "button,input,select,textarea,a,.widget-interactive,[role='button'],[data-widget-control='true']";
 
 type DashboardRendererProps = {
   definition: DashboardDefinition;
@@ -29,7 +44,6 @@ type DashboardRendererProps = {
   syncHover?: boolean;
   chrome?: "full" | "panel";
   showActions?: boolean;
-  layoutMode?: AnalyticsLayoutMode;
 };
 
 export function DashboardRenderer({
@@ -40,16 +54,15 @@ export function DashboardRenderer({
   viewMode = "split",
   syncHover = true,
   chrome = "full",
-  showActions = true,
-  layoutMode = "dashboard"
+  showActions = true
 }: DashboardRendererProps) {
-  const { widgets, layout, updateLayout, updateWidgetConfig, addWidget, removeWidget, resetDashboard } = useDashboardState(definition);
+  const dashboard = useDashboardState(definition);
 
   return (
     <DashboardGrid
       definition={definition}
-      widgets={widgets}
-      layout={layout}
+      widgets={dashboard.widgets}
+      layout={dashboard.layout}
       dashboardContext={dashboardContext}
       comparisonContext={comparisonContext}
       compareMode={compareMode}
@@ -57,15 +70,32 @@ export function DashboardRenderer({
       syncHover={syncHover}
       chrome={chrome}
       showActions={showActions}
-      layoutMode={layoutMode}
-      updateLayout={updateLayout}
-      updateWidgetConfig={updateWidgetConfig}
-      addWidget={addWidget}
-      removeWidget={removeWidget}
-      resetDashboard={resetDashboard}
+      updateLayout={dashboard.updateLayout}
+      updateWidgetConfig={dashboard.updateWidgetConfig}
+      addWidget={dashboard.addWidget}
+      removeWidget={dashboard.removeWidget}
+      resetDashboard={dashboard.resetDashboard}
     />
   );
 }
+
+export type DashboardGridProps = {
+  definition: DashboardDefinition;
+  widgets: WidgetSchema[];
+  layout: Layout[];
+  dashboardContext: DashboardContext;
+  comparisonContext?: DashboardContext;
+  compareMode?: boolean;
+  viewMode?: ComparisonViewMode;
+  syncHover?: boolean;
+  chrome?: "full" | "panel";
+  showActions?: boolean;
+  updateLayout: (layout: Layout[]) => void;
+  updateWidgetConfig: (widgetId: string, config: Partial<WidgetConfig>) => void;
+  addWidget: (widget: WidgetSchema) => void;
+  removeWidget: (widgetId: string) => void;
+  resetDashboard: () => void;
+};
 
 export function DashboardGrid({
   definition,
@@ -78,51 +108,41 @@ export function DashboardGrid({
   syncHover = true,
   chrome = "full",
   showActions = true,
-  layoutMode = "dashboard",
   updateLayout,
   updateWidgetConfig,
   addWidget,
   removeWidget,
   resetDashboard
-}: {
-  definition: DashboardDefinition;
-  widgets: WidgetSchema[];
-  layout: Layout[];
-  dashboardContext: DashboardContext;
-  comparisonContext?: DashboardContext;
-  compareMode?: boolean;
-  viewMode?: ComparisonViewMode;
-  syncHover?: boolean;
-  chrome?: "full" | "panel";
-  showActions?: boolean;
-  layoutMode?: AnalyticsLayoutMode;
-  updateLayout: (layout: Layout[]) => void;
-  updateWidgetConfig: (widgetId: string, config: Partial<WidgetConfig>) => void;
-  addWidget: (widget: WidgetSchema) => void;
-  removeWidget: (widgetId: string) => void;
-  resetDashboard: () => void;
-}) {
-  const visibleWidgets = widgets.filter((widget) => widget.visible !== false);
-  const hiddenWidgets = widgets.filter((widget) => widget.visible === false);
-  const setLayoutMode = useAnalyticsLayoutStore((state) => state.setLayoutMode);
-  const setStoredLayout = useAnalyticsLayoutStore((state) => state.setLayout);
-  const activeLayout = useMemo(
-    () => (ENABLE_NEW_GRID_SYSTEM ? normalizeWidgetLayouts(visibleWidgets, layoutMode) : layout),
-    [layout, layoutMode, visibleWidgets]
+}: DashboardGridProps) {
+  const visibleWidgets = useMemo(
+    () => widgets.filter((widget) => widget.visible !== false),
+    [widgets]
   );
-  const density = ENABLE_NEW_GRID_SYSTEM ? dashboardGridDensity.compact : dashboardGridDensity.legacy;
-  const breakpoints = ENABLE_NEW_GRID_SYSTEM
-    ? { lg: 1200, md: 768, sm: 480, xs: 320, xxs: 0 }
-    : { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
-  const columns = ENABLE_NEW_GRID_SYSTEM
-    ? { lg: 12, md: 6, sm: 1, xs: 1, xxs: 1 }
-    : { lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 };
+  const hiddenWidgets = useMemo(
+    () => widgets.filter((widget) => widget.visible === false),
+    [widgets]
+  );
 
-  useEffect(() => {
-    if (!ENABLE_NEW_GRID_SYSTEM) return;
-    setLayoutMode(definition.id, layoutMode);
-    setStoredLayout(definition.id, activeLayout);
-  }, [activeLayout, definition.id, layoutMode, setLayoutMode, setStoredLayout]);
+  // ResponsiveGridLayout expects a per-breakpoint layouts map. We use the
+  // same layout for every breakpoint; RGL handles reflow when the container
+  // shrinks below a breakpoint by clamping items to the breakpoint's cols.
+  const responsiveLayouts = useMemo(
+    () => ({
+      lg: layout,
+      md: layout,
+      sm: layout,
+      xs: layout,
+      xxs: layout
+    }),
+    [layout]
+  );
+
+  const handleLayoutChange = useCallback(
+    (nextLayout: Layout[]) => {
+      updateLayout(nextLayout);
+    },
+    [updateLayout]
+  );
 
   const notifyChartsOfResize = useCallback(() => {
     requestAnimationFrame(() => {
@@ -139,17 +159,19 @@ export function DashboardGrid({
   );
 
   return (
-    <div className={ENABLE_NEW_GRID_SYSTEM ? "space-y-4" : "space-y-5"}>
+    <div className="space-y-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-2 text-sm text-slate-400">
+        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
           {chrome === "full" ? (
             <>
               <span>Home</span>
               <span>/</span>
             </>
           ) : null}
-          <span className="font-semibold text-slate-300">{definition.title}</span>
-          <span className="rounded-full bg-white/[0.07] px-2 py-1 text-xs font-bold text-slate-300">{dashboardContext.label}</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-300">{definition.title}</span>
+          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 dark:bg-white/[0.07] dark:text-slate-300">
+            {dashboardContext.label}
+          </span>
         </div>
         {showActions ? (
           <div className="flex flex-wrap gap-2">
@@ -161,7 +183,11 @@ export function DashboardGrid({
                 if (widget) addWidget(widget);
               }}
             />
-            <Button variant="outline" className="border-white/10 bg-[#24283d] text-slate-200 hover:bg-[#2d3147]" onClick={resetDashboard}>
+            <Button
+              variant="outline"
+              className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-[#24283d] dark:text-slate-200 dark:hover:bg-[#2d3147]"
+              onClick={resetDashboard}
+            >
               <RotateCcw className="mr-2 h-4 w-4" />
               Reset Layout
             </Button>
@@ -169,6 +195,7 @@ export function DashboardGrid({
         ) : null}
       </div>
 
+<<<<<<< HEAD
       {ENABLE_NEW_GRID_SYSTEM ? (
         <ResponsiveGridLayout
           className="layout"
@@ -289,3 +316,45 @@ function finiteOrder(y: number, x: number) {
   const safeX = Number.isFinite(x) ? x : 0;
   return safeY * 100 + safeX;
 }
+=======
+      <ResponsiveGridLayout
+        className="layout"
+        layouts={responsiveLayouts}
+        breakpoints={GRID_BREAKPOINTS}
+        cols={GRID_COLUMNS}
+        rowHeight={GRID_ROW_HEIGHT}
+        margin={GRID_MARGIN}
+        containerPadding={[0, 0]}
+        draggableHandle=".widget-drag-handle"
+        draggableCancel={DRAGGABLE_CANCEL}
+        resizeHandles={["se"]}
+        compactType="vertical"
+        preventCollision={false}
+        useCSSTransforms
+        onLayoutChange={handleLayoutChange}
+      >
+        {visibleWidgets.map((widget) => (
+          // Direct DOM children — react-grid-layout cloneElement injects
+          // className / style / event handlers / resize-handle children here.
+          // Keep this element a plain <div>; do not wrap in a memoized component
+          // unless it forwards every RGL prop, otherwise positioning breaks.
+          <div key={widget.id} className="min-w-0">
+            <WidgetRenderer
+              widget={widget}
+              context={{
+                dashboardContext,
+                comparisonContext,
+                compareMode,
+                viewMode,
+                syncHover,
+                setWidgetConfig: updateWidgetConfig,
+                removeWidget
+              }}
+            />
+          </div>
+        ))}
+      </ResponsiveGridLayout>
+    </div>
+  );
+}
+>>>>>>> origin/claude/elated-galileo-73ca50

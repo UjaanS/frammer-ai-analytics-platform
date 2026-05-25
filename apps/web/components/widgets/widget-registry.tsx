@@ -1,6 +1,12 @@
 "use client";
 
+<<<<<<< HEAD
 import { Download, FileDown, GripVertical, Maximize2, Search, Sparkles, X } from "lucide-react";
+=======
+import { Download, FileDown, Maximize2, Search, Sparkles, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+>>>>>>> origin/claude/elated-galileo-73ca50
 import {
   Bar,
   BarChart,
@@ -33,8 +39,6 @@ import {
   platformPalette,
   timeGroupLabel
 } from "@/lib/widgets/dashboard-data";
-import { cn } from "@/lib/utils";
-import { ENABLE_NEW_GRID_SYSTEM } from "@/src/modules/analytics/layout";
 import type { WidgetDataContext, WidgetSchema } from "@/lib/widgets/types";
 import type { VideoRecord } from "@/lib/analytics/types";
 
@@ -59,7 +63,21 @@ export function WidgetRenderer({ widget, context }: WidgetComponentProps) {
 }
 
 function KpiWidget({ widget, context }: WidgetComponentProps) {
+<<<<<<< HEAD
   const { isOpen, openKPI, closeKPI } = useKPIOverlay();
+=======
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
+>>>>>>> origin/claude/elated-galileo-73ca50
   const data = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as Record<string, number>;
   const comparisonData = context.comparisonContext
     ? (getWidgetData(widget.queryKey, widget.config, context.comparisonContext) as Record<string, number>)
@@ -77,6 +95,7 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
   return (
     <>
       <section
+<<<<<<< HEAD
         className={cn(
           "group relative flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#24283d] shadow-lg shadow-black/20 transition hover:border-white/20",
           ENABLE_NEW_GRID_SYSTEM ? "p-0" : "p-0"
@@ -93,10 +112,25 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
           </div>
           <div
             className="widget-interactive flex shrink-0 items-center gap-1"
+=======
+        className="widget-drag-handle group relative h-full cursor-move overflow-hidden rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 dark:border-white/10 dark:bg-[#24283d] dark:shadow-lg dark:shadow-black/20 dark:hover:border-white/20"
+      >
+        <div className="absolute right-3 top-3 flex items-center gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+          <button
+            type="button"
+            title="Expand details"
+            aria-label="Expand details"
+            className="widget-interactive inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+            onClick={(event) => {
+              event.stopPropagation();
+              setOpen(true);
+            }}
+>>>>>>> origin/claude/elated-galileo-73ca50
             onMouseDown={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
           >
+<<<<<<< HEAD
             <button
               type="button"
               title="Expand KPI"
@@ -105,10 +139,24 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
               onClick={(event) => {
                 event.stopPropagation();
                 openKPI();
+=======
+            <Maximize2 className="h-3.5 w-3.5" />
+          </button>
+          {context.removeWidget ? (
+            <button
+              type="button"
+              title="Remove widget"
+              aria-label="Remove widget"
+              className="widget-interactive inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-600 transition hover:bg-rose-50 hover:text-rose-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400 dark:hover:bg-rose-500/15 dark:hover:text-rose-100"
+              onClick={(event) => {
+                event.stopPropagation();
+                context.removeWidget?.(widget.id);
+>>>>>>> origin/claude/elated-galileo-73ca50
               }}
               onMouseDown={(event) => event.stopPropagation()}
               onPointerDown={(event) => event.stopPropagation()}
             >
+<<<<<<< HEAD
               <Maximize2 className="h-4 w-4" />
             </button>
             {context.removeWidget ? (
@@ -179,6 +227,66 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
           </WhiteChartCanvas>
         }
       />
+=======
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+        <h3 className="text-base font-bold text-slate-500 dark:text-slate-400">{widget.title}</h3>
+        <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{value}</div>
+        <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{detail}</p>
+        {delta ? (
+          <div className={`mt-4 inline-flex rounded-full px-3 py-1 text-xs font-black ${delta.direction === "down" ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"}`}>
+            {delta.direction === "up" ? "↑" : delta.direction === "down" ? "↓" : "→"} {delta.delta > 0 ? "+" : ""}
+            {formatDeltaValue(delta.delta, metric)} · {delta.percent > 0 ? "+" : ""}
+            {delta.percent}% vs peer
+          </div>
+        ) : null}
+      </section>
+
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 dark:bg-black/60" onClick={() => setOpen(false)}>
+              <div className="widget-interactive w-full max-w-3xl rounded-lg border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#24283d]" onClick={(event) => event.stopPropagation()}>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-wide text-[#ef405b]">Metric breakdown</div>
+                    <h2 className="mt-1 text-2xl font-black text-slate-900 dark:text-white">{widget.title}</h2>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{context.dashboardContext.label} · {detail}</p>
+                  </div>
+                  <button type="button" className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white" onClick={() => setOpen(false)}>
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="mt-5 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-[#2d3147]">
+                    <div className="text-sm font-bold text-slate-500 dark:text-slate-400">Current value</div>
+                    <div className="mt-3 text-4xl font-black text-slate-900 dark:text-white">{value}</div>
+                    <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{detail}</p>
+                    {delta ? (
+                      <div className="mt-4 rounded-lg bg-slate-100 p-3 text-sm font-bold text-slate-700 dark:bg-white/[0.04] dark:text-slate-200">
+                        {delta.percent > 0 ? "+" : ""}{delta.percent}% vs comparison context
+                      </div>
+                    ) : null}
+                  </div>
+                  <WhiteChartCanvas>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={trendData} margin={{ left: 8, right: 16, top: 12, bottom: 8 }}>
+                        <CartesianGrid stroke="#e8e8ee" />
+                        <XAxis dataKey="label" tick={{ fill: "#4b5563", fontSize: 12 }} tickLine={false} />
+                        <YAxis tick={{ fill: "#4b5563", fontSize: 12 }} tickLine={false} />
+                        <Tooltip formatter={(item) => formatMetricValue(Number(item), trendKey.includes("Duration") ? "duration" : "count")} />
+                        <Line type="monotone" dataKey={trendKey} name={widget.title} stroke={chartColors.published} strokeWidth={3} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </WhiteChartCanvas>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
+>>>>>>> origin/claude/elated-galileo-73ca50
     </>
   );
 }
@@ -354,8 +462,24 @@ function TableWidget({ widget, context }: WidgetComponentProps) {
 }
 
 function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: WidgetDataContext }) {
+  const [searchQuery, setSearchQuery] = useState("");
   const videos = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as VideoRecord[];
-  const exportRows = videos.map((video) => ({
+
+  const filteredVideos = searchQuery.trim()
+    ? videos.filter((video) => {
+        const query = searchQuery.toLowerCase();
+        return (
+          video.title.toLowerCase().includes(query) ||
+          video.channel.toLowerCase().includes(query) ||
+          video.user.toLowerCase().includes(query) ||
+          video.team.toLowerCase().includes(query) ||
+          video.inputType.toLowerCase().includes(query) ||
+          video.outputType.toLowerCase().includes(query)
+        );
+      })
+    : videos;
+
+  const exportRows = filteredVideos.map((video) => ({
     headline: video.title,
     url: "Web URL",
     published: video.publishedStatus === "Published" ? "Yes" : "No",
@@ -371,17 +495,19 @@ function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: W
   return (
     <WidgetChrome
       title={widget.title}
-      description="A simple searchable list of recent video records."
+      description={`A simple searchable list of recent video records.${filteredVideos.length !== videos.length ? ` Showing ${filteredVideos.length} of ${videos.length}.` : ""}`}
       exportRows={exportRows}
       exportFileName={widget.title}
       onRemove={context.removeWidget ? () => context.removeWidget?.(widget.id) : undefined}
       actions={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <label className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-400" />
             <input
               placeholder="Search videos"
-              className="h-10 rounded-md border border-white/10 bg-[#2d3147] pl-9 pr-3 text-sm text-white outline-none focus:ring-2 focus:ring-primary"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="h-10 rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-primary dark:border-white/10 dark:bg-[#2d3147] dark:text-white"
             />
           </label>
           <Button
@@ -410,27 +536,35 @@ function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: W
           <thead>
             <tr>
               {["Headline", "URL", "Published", "Downloaded", "Team Name", "Type", "Output Type", "Uploaded By", "Video ID", "Published Platform"].map((column) => (
-                <th key={column} className="bg-white px-3 py-3 font-black text-slate-800">
+                <th key={column} className="bg-slate-100 px-3 py-3 font-black text-slate-800 dark:bg-white">
                   {column}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {videos.map((video) => (
-              <tr key={video.id} className="border-b border-slate-500/70 odd:bg-white/[0.03]">
-                <td className="max-w-[28rem] px-3 py-3 font-semibold text-blue-300">{video.title}</td>
-                <td className="px-3 py-3 font-semibold text-blue-300">Web URL</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.publishedStatus === "Published" ? "Yes" : "No"}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.downloads > 0 ? "Yes" : "No"}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.team}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.inputType}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.outputType}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.user}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.id.replace("VID-", "")}</td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{video.channel}</td>
+            {filteredVideos.length ? (
+              filteredVideos.map((video) => (
+                <tr key={video.id} className="border-b border-slate-200 odd:bg-slate-50 dark:border-slate-500/70 dark:odd:bg-white/[0.03]">
+                  <td className="max-w-[28rem] px-3 py-3 font-semibold text-blue-600 dark:text-blue-300">{video.title}</td>
+                  <td className="px-3 py-3 font-semibold text-blue-600 dark:text-blue-300">Web URL</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.publishedStatus === "Published" ? "Yes" : "No"}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.downloads > 0 ? "Yes" : "No"}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.team}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.inputType}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.outputType}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.user}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.id.replace("VID-", "")}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.channel}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={10} className="px-3 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                  No videos match &ldquo;{searchQuery}&rdquo;. Try a different search term.
+                </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
@@ -476,12 +610,12 @@ function AiInsightWidget({ widget, context }: WidgetComponentProps) {
       exportFileName={widget.title}
       onRemove={context.removeWidget ? () => context.removeWidget?.(widget.id) : undefined}
     >
-      <div className="rounded-lg bg-[#2d3147] p-4">
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-transparent dark:bg-[#2d3147]">
         <div className="flex items-center gap-2 text-sm font-black text-[#ef405b]">
           <Sparkles className="h-4 w-4" />
           {data.title}
         </div>
-        <p className="mt-3 text-sm leading-6 text-slate-300">{data.body}</p>
+        <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{data.body}</p>
       </div>
     </WidgetChrome>
   );
