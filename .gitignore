@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+dist
+build
+.turbo
+.idea
+.env
+.env.local
+.venv
+__pycache__
+.pytest_cache
+*.pyc
+*.tsbuildinfo
+coverage
+.DS_Store
