@@ -5,7 +5,7 @@ import type { Layout } from "react-grid-layout";
 
 import type { DashboardDefinition, WidgetConfig, WidgetSchema } from "@/lib/widgets/types";
 import { readLocalStorage, removeLocalStorage, writeLocalStorage } from "@/lib/storage/safe-local-storage";
-import { ENABLE_NEW_GRID_SYSTEM, insertWidgetAtTop, normalizeWidgetLayouts } from "@/src/modules/analytics/layout";
+import { insertWidgetAtTop } from "@/src/modules/analytics/layout";
 
 type StoredDashboard = {
   widgets: WidgetSchema[];
@@ -73,7 +73,7 @@ export function useDashboardState(definition: DashboardDefinition) {
 
   const resetDashboard = useCallback(() => {
     removeLocalStorage(storageKey);
-    setWidgets(ENABLE_NEW_GRID_SYSTEM ? normalizeWidgets(definition.widgets) : definition.widgets);
+    setWidgets(definition.widgets);
   }, [definition.widgets, storageKey]);
 
   return {
@@ -85,14 +85,6 @@ export function useDashboardState(definition: DashboardDefinition) {
     removeWidget,
     resetDashboard
   };
-}
-
-function normalizeWidgets(widgets: WidgetSchema[]) {
-  const normalizedLayouts = normalizeWidgetLayouts(widgets, "dashboard");
-  return widgets.map((widget) => {
-    const normalized = normalizedLayouts.find((layoutItem) => layoutItem.i === widget.id);
-    return normalized ? { ...widget, position: normalized } : widget;
-  });
 }
 
 function reconcileWidgets(defaultWidgets: WidgetSchema[], storedWidgets: WidgetSchema[]) {

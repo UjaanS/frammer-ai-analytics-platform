@@ -42,7 +42,10 @@ export const defaultFrammerWidgets: WidgetSchema[] = [
 ];
 
 export const frammerDashboardDefinition: DashboardDefinition = {
-  id: "frammer-main-dashboard-v3",
+  // Bumped to v4 alongside the grid system stabilization — invalidates any
+  // saved layouts from the previous broken react-grid-layout integration so
+  // users start from a known-good preset.
+  id: "frammer-main-dashboard-v4",
   title: "NewAnalyticsV1",
   widgets: defaultFrammerWidgets
 };
