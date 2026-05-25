@@ -19,13 +19,13 @@ export function SimpleDataTable({
 }) {
   return (
     <div className="flex h-full min-w-0 flex-col overflow-hidden">
-      {title ? <h3 className="mb-2 text-sm font-black text-white">{title}</h3> : null}
+      {title ? <h3 className="mb-2 text-sm font-black text-slate-900 dark:text-white">{title}</h3> : null}
       <div className="min-h-0 overflow-auto">
         <table className="w-full min-w-[520px] border-collapse text-left text-sm">
           <thead>
             <tr>
               {columns.map((column) => (
-                <th key={column} className="bg-white px-3 py-2.5 font-black text-slate-800">
+                <th key={column} className="bg-slate-50 px-3 py-2.5 font-black text-slate-800 dark:bg-white">
                   {column}
                 </th>
               ))}
@@ -33,9 +33,9 @@ export function SimpleDataTable({
           </thead>
           <tbody>
             {rows.map((row, rowIndex) => (
-              <tr key={`${row[0]}-${rowIndex}`} className="border-b border-slate-500/70">
+              <tr key={`${row[0]}-${rowIndex}`} className="border-b border-slate-200 dark:border-slate-500/70">
                 {row.map((cell, cellIndex) => (
-                  <td key={`${cell}-${cellIndex}`} className="px-3 py-2.5 font-semibold text-slate-100">
+                  <td key={`${cell}-${cellIndex}`} className="px-3 py-2.5 font-semibold text-slate-700 dark:text-slate-100">
                     {cell}
                   </td>
                 ))}

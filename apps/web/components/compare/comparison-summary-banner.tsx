@@ -29,11 +29,11 @@ export function ComparisonSummaryBanner({ left, right }: { left: DashboardContex
   const biggestDrop = deltas.find((item) => item.direction === "down");
 
   return (
-    <section className="rounded-lg border border-white/10 bg-gradient-to-r from-[#24283d] to-[#202335] p-5 shadow-xl shadow-black/20">
+    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-gradient-to-r dark:from-[#24283d] dark:to-[#202335] dark:shadow-xl dark:shadow-black/20">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-sm font-black uppercase tracking-wide text-[#ef405b]">Comparison Summary</p>
-          <h2 className="mt-1 text-2xl font-black text-slate-100">{left.label} vs {right.label}</h2>
+          <h2 className="mt-1 text-2xl font-black text-slate-900 dark:text-slate-100">{left.label} vs {right.label}</h2>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[32rem]">
           <SummaryPill
@@ -56,12 +56,12 @@ function SummaryPill({ label, value, positive }: { label: string; value: string;
   const Icon = positive ? TrendingUp : TrendingDown;
 
   return (
-    <div className={`rounded-lg border p-4 ${positive ? "border-emerald-400/20 bg-emerald-500/10" : "border-rose-400/20 bg-rose-500/10"}`}>
-      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-400">
+    <div className={`rounded-lg border p-4 ${positive ? "border-emerald-300/60 bg-emerald-50 dark:border-emerald-400/20 dark:bg-emerald-500/10" : "border-rose-300/60 bg-rose-50 dark:border-rose-400/20 dark:bg-rose-500/10"}`}>
+      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
         <Icon className="h-4 w-4" />
         {label}
       </div>
-      <div className="mt-1 text-lg font-black text-white">{value}</div>
+      <div className="mt-1 text-lg font-black text-slate-900 dark:text-white">{value}</div>
     </div>
   );
 }

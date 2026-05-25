@@ -84,14 +84,14 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
   return (
     <>
       <section
-        className="widget-drag-handle group relative h-full cursor-move overflow-hidden rounded-lg border border-white/10 bg-[#24283d] p-4 shadow-lg shadow-black/20 transition hover:border-white/20"
+        className="widget-drag-handle group relative h-full cursor-move overflow-hidden rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 dark:border-white/10 dark:bg-[#24283d] dark:shadow-lg dark:shadow-black/20 dark:hover:border-white/20"
       >
         <div className="absolute right-3 top-3 flex items-center gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
           <button
             type="button"
             title="Expand details"
             aria-label="Expand details"
-            className="widget-interactive inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition hover:bg-white/10 hover:text-white"
+            className="widget-interactive inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
             onClick={(event) => {
               event.stopPropagation();
               setOpen(true);
@@ -106,7 +106,7 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
               type="button"
               title="Remove widget"
               aria-label="Remove widget"
-              className="widget-interactive inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition hover:bg-rose-500/15 hover:text-rose-100"
+              className="widget-interactive inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-600 transition hover:bg-rose-50 hover:text-rose-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400 dark:hover:bg-rose-500/15 dark:hover:text-rose-100"
               onClick={(event) => {
                 event.stopPropagation();
                 context.removeWidget?.(widget.id);
@@ -118,11 +118,11 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
             </button>
           ) : null}
         </div>
-        <h3 className="text-base font-bold text-slate-400">{widget.title}</h3>
-        <div className="mt-3 text-2xl font-black text-white">{value}</div>
-        <p className="mt-2 text-sm font-semibold text-slate-300">{detail}</p>
+        <h3 className="text-base font-bold text-slate-500 dark:text-slate-400">{widget.title}</h3>
+        <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{value}</div>
+        <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{detail}</p>
         {delta ? (
-          <div className={`mt-4 inline-flex rounded-full px-3 py-1 text-xs font-black ${delta.direction === "down" ? "bg-rose-500/15 text-rose-200" : "bg-emerald-500/15 text-emerald-200"}`}>
+          <div className={`mt-4 inline-flex rounded-full px-3 py-1 text-xs font-black ${delta.direction === "down" ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"}`}>
             {delta.direction === "up" ? "↑" : delta.direction === "down" ? "↓" : "→"} {delta.delta > 0 ? "+" : ""}
             {formatDeltaValue(delta.delta, metric)} · {delta.percent > 0 ? "+" : ""}
             {delta.percent}% vs peer
@@ -132,25 +132,25 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
 
       {open && typeof document !== "undefined"
         ? createPortal(
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setOpen(false)}>
-              <div className="widget-interactive w-full max-w-3xl rounded-lg border border-white/10 bg-[#24283d] p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 dark:bg-black/60" onClick={() => setOpen(false)}>
+              <div className="widget-interactive w-full max-w-3xl rounded-lg border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#24283d]" onClick={(event) => event.stopPropagation()}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="text-xs font-black uppercase tracking-wide text-[#ef405b]">Metric breakdown</div>
-                    <h2 className="mt-1 text-2xl font-black text-white">{widget.title}</h2>
-                    <p className="mt-1 text-sm text-slate-400">{context.dashboardContext.label} · {detail}</p>
+                    <h2 className="mt-1 text-2xl font-black text-slate-900 dark:text-white">{widget.title}</h2>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{context.dashboardContext.label} · {detail}</p>
                   </div>
-                  <button type="button" className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" onClick={() => setOpen(false)}>
+                  <button type="button" className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white" onClick={() => setOpen(false)}>
                     <X className="h-5 w-5" />
                   </button>
                 </div>
                 <div className="mt-5 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
-                  <div className="rounded-lg border border-white/10 bg-[#2d3147] p-4">
-                    <div className="text-sm font-bold text-slate-400">Current value</div>
-                    <div className="mt-3 text-4xl font-black text-white">{value}</div>
-                    <p className="mt-2 text-sm font-semibold text-slate-300">{detail}</p>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-[#2d3147]">
+                    <div className="text-sm font-bold text-slate-500 dark:text-slate-400">Current value</div>
+                    <div className="mt-3 text-4xl font-black text-slate-900 dark:text-white">{value}</div>
+                    <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{detail}</p>
                     {delta ? (
-                      <div className="mt-4 rounded-lg bg-white/[0.04] p-3 text-sm font-bold text-slate-200">
+                      <div className="mt-4 rounded-lg bg-slate-100 p-3 text-sm font-bold text-slate-700 dark:bg-white/[0.04] dark:text-slate-200">
                         {delta.percent > 0 ? "+" : ""}{delta.percent}% vs comparison context
                       </div>
                     ) : null}
@@ -387,12 +387,12 @@ function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: W
       actions={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <label className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-400" />
             <input
               placeholder="Search videos"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              className="h-10 rounded-md border border-white/10 bg-[#2d3147] pl-9 pr-3 text-sm text-white outline-none focus:ring-2 focus:ring-primary"
+              className="h-10 rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-primary dark:border-white/10 dark:bg-[#2d3147] dark:text-white"
             />
           </label>
           <Button
@@ -421,7 +421,7 @@ function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: W
           <thead>
             <tr>
               {["Headline", "URL", "Published", "Downloaded", "Team Name", "Type", "Output Type", "Uploaded By", "Video ID", "Published Platform"].map((column) => (
-                <th key={column} className="bg-white px-3 py-3 font-black text-slate-800">
+                <th key={column} className="bg-slate-100 px-3 py-3 font-black text-slate-800 dark:bg-white">
                   {column}
                 </th>
               ))}
@@ -430,22 +430,22 @@ function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: W
           <tbody>
             {filteredVideos.length ? (
               filteredVideos.map((video) => (
-                <tr key={video.id} className="border-b border-slate-500/70 odd:bg-white/[0.03]">
-                  <td className="max-w-[28rem] px-3 py-3 font-semibold text-blue-300">{video.title}</td>
-                  <td className="px-3 py-3 font-semibold text-blue-300">Web URL</td>
-                  <td className="px-3 py-3 font-semibold text-slate-100">{video.publishedStatus === "Published" ? "Yes" : "No"}</td>
-                  <td className="px-3 py-3 font-semibold text-slate-100">{video.downloads > 0 ? "Yes" : "No"}</td>
-                  <td className="px-3 py-3 font-semibold text-slate-100">{video.team}</td>
-                  <td className="px-3 py-3 font-semibold text-slate-100">{video.inputType}</td>
-                  <td className="px-3 py-3 font-semibold text-slate-100">{video.outputType}</td>
-                  <td className="px-3 py-3 font-semibold text-slate-100">{video.user}</td>
-                  <td className="px-3 py-3 font-semibold text-slate-100">{video.id.replace("VID-", "")}</td>
-                  <td className="px-3 py-3 font-semibold text-slate-100">{video.channel}</td>
+                <tr key={video.id} className="border-b border-slate-200 odd:bg-slate-50 dark:border-slate-500/70 dark:odd:bg-white/[0.03]">
+                  <td className="max-w-[28rem] px-3 py-3 font-semibold text-blue-600 dark:text-blue-300">{video.title}</td>
+                  <td className="px-3 py-3 font-semibold text-blue-600 dark:text-blue-300">Web URL</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.publishedStatus === "Published" ? "Yes" : "No"}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.downloads > 0 ? "Yes" : "No"}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.team}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.inputType}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.outputType}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.user}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.id.replace("VID-", "")}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-700 dark:text-slate-100">{video.channel}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={10} className="px-3 py-10 text-center text-sm text-slate-400">
+                <td colSpan={10} className="px-3 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
                   No videos match &ldquo;{searchQuery}&rdquo;. Try a different search term.
                 </td>
               </tr>
@@ -495,12 +495,12 @@ function AiInsightWidget({ widget, context }: WidgetComponentProps) {
       exportFileName={widget.title}
       onRemove={context.removeWidget ? () => context.removeWidget?.(widget.id) : undefined}
     >
-      <div className="rounded-lg bg-[#2d3147] p-4">
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-transparent dark:bg-[#2d3147]">
         <div className="flex items-center gap-2 text-sm font-black text-[#ef405b]">
           <Sparkles className="h-4 w-4" />
           {data.title}
         </div>
-        <p className="mt-3 text-sm leading-6 text-slate-300">{data.body}</p>
+        <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{data.body}</p>
       </div>
     </WidgetChrome>
   );

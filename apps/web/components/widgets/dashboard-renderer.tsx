@@ -127,15 +127,15 @@ export function DashboardGrid({
   return (
     <div className={ENABLE_NEW_GRID_SYSTEM ? "space-y-4" : "space-y-5"}>
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-2 text-sm text-slate-400">
+        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
           {chrome === "full" ? (
             <>
               <span>Home</span>
               <span>/</span>
             </>
           ) : null}
-          <span className="font-semibold text-slate-300">{definition.title}</span>
-          <span className="rounded-full bg-white/[0.07] px-2 py-1 text-xs font-bold text-slate-300">{dashboardContext.label}</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-300">{definition.title}</span>
+          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 dark:bg-white/[0.07] dark:text-slate-300">{dashboardContext.label}</span>
         </div>
         {showActions ? (
           <div className="flex flex-wrap gap-2">
@@ -147,7 +147,7 @@ export function DashboardGrid({
                 if (widget) addWidget(widget);
               }}
             />
-            <Button variant="outline" className="border-white/10 bg-[#24283d] text-slate-200 hover:bg-[#2d3147]" onClick={resetDashboard}>
+            <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-[#24283d] dark:text-slate-200 dark:hover:bg-[#2d3147]" onClick={resetDashboard}>
               <RotateCcw className="mr-2 h-4 w-4" />
               Reset Layout
             </Button>

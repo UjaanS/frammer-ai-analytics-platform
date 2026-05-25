@@ -52,14 +52,14 @@ export function WidgetChrome({
     <section
       ref={exportRef}
       className={cn(
-        "group flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#24283d] shadow-xl shadow-black/20 p-4",
+        "group flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#24283d] dark:shadow-xl dark:shadow-black/20",
         className
       )}
     >
       <div className="widget-drag-handle flex shrink-0 cursor-move flex-col gap-2 mb-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
-          <h2 className="truncate font-black text-slate-300 text-lg md:text-xl">{title}</h2>
-          {description ? <p className="mt-1 text-sm font-medium text-slate-400">{description}</p> : null}
+          <h2 className="truncate text-lg font-black text-slate-700 md:text-xl dark:text-slate-300">{title}</h2>
+          {description ? <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">{description}</p> : null}
         </div>
         <div
           data-export-ignore="true"
@@ -120,8 +120,8 @@ function WidgetIconButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-300 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50",
-        danger ? "hover:border-rose-400/30 hover:bg-rose-500/15 hover:text-rose-100" : null
+        "inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white",
+        danger ? "hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:border-rose-400/30 dark:hover:bg-rose-500/15 dark:hover:text-rose-100" : null
       )}
     >
       {children}

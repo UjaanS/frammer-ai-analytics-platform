@@ -90,7 +90,7 @@ function StandardContextHeader({
   }
 
   return (
-    <Card className="overflow-hidden border-white/10 bg-[#24283d]/95 shadow-xl shadow-black/20">
+    <Card className="overflow-hidden border-slate-200 dark:border-white/10 bg-white dark:bg-[#24283d]/95 shadow-xl shadow-black/20">
       <CardContent className="p-5">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
@@ -98,16 +98,16 @@ function StandardContextHeader({
               <Sparkles className="h-4 w-4" />
               Analytics Context
             </div>
-            <h1 className="mt-2 truncate text-2xl font-black text-slate-100">
+            <h1 className="mt-2 truncate text-2xl font-black text-slate-900 dark:text-slate-100">
               {formatDateRangeLabel(context.dateRange)} · {context.filters.company} · {context.filters.channel}
             </h1>
-            <p className="mt-1 text-sm text-slate-400">Primary scope first. Power filters stay one click away.</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Primary scope first. Power filters stay one click away.</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" className="h-10 rounded-full border-white/10 bg-[#2d3147] px-4 text-slate-200 hover:bg-white/10">
+                <Button variant="outline" className="h-10 rounded-full border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#2d3147] px-4 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/10">
                   <SlidersHorizontal className="mr-2 h-4 w-4" />
                   Advanced Filters
                 </Button>
@@ -142,7 +142,7 @@ function StandardContextHeader({
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-black uppercase tracking-wide text-slate-500">Selected</span>
+          <span className="text-xs font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">Selected</span>
           {buildFilterChips(context).map((chip) => (
             <FilterChip key={chip.key} label={chip.label} tone={chip.tone} onRemove={chip.removable ? () => removeFilter(chip.key) : undefined} />
           ))}
@@ -165,20 +165,20 @@ function ComparisonContextCard({
   const chips = buildFilterChips(context).slice(0, 4);
 
   return (
-    <Card className={cn("overflow-hidden border border-white/10 border-t-2 bg-[#24283d]/95 shadow-xl transition-all duration-300 hover:border-white/20", accent.border, accent.glow)}>
+    <Card className={cn("overflow-hidden border border-slate-200 dark:border-white/10 border-t-2 bg-white dark:bg-[#24283d]/95 shadow-xl transition-all duration-300 hover:border-slate-300 dark:hover:border-white/20", accent.border, accent.glow)}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-black uppercase tracking-wide", accent.bg, accent.text)}>
               {context.label}
             </div>
-            <h2 className="mt-3 truncate text-xl font-black text-slate-100">{formatDateRangeLabel(context.dateRange)}</h2>
-            <p className="mt-1 truncate text-sm font-semibold text-slate-400">{context.filters.channel} · {labelFromValue(context.filters.user, userOptions)}</p>
+            <h2 className="mt-3 truncate text-xl font-black text-slate-900 dark:text-slate-100">{formatDateRangeLabel(context.dateRange)}</h2>
+            <p className="mt-1 truncate text-sm font-semibold text-slate-500 dark:text-slate-400">{context.filters.channel} · {labelFromValue(context.filters.user, userOptions)}</p>
           </div>
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" className="h-9 shrink-0 rounded-full border-white/10 bg-[#2d3147] px-4 text-slate-200 hover:bg-white/10">
+              <Button variant="outline" className="h-9 shrink-0 rounded-full border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#2d3147] px-4 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/10">
                 <PanelRightOpen className="mr-2 h-4 w-4" />
                 Edit
               </Button>
@@ -238,10 +238,10 @@ function FilterDrawer({
   }
 
   return (
-    <SheetContent className="left-auto right-0 w-full max-w-xl overflow-y-auto border-l border-white/10 border-r-0 bg-[#202337] p-0 text-slate-100 shadow-2xl">
-      <div className="border-b border-white/10 p-6">
-        <SheetTitle className="text-2xl font-black text-white">{title}</SheetTitle>
-        <SheetDescription className="mt-2 text-sm leading-6 text-slate-400">{description}</SheetDescription>
+    <SheetContent className="left-auto right-0 w-full max-w-xl overflow-y-auto border-l border-slate-200 dark:border-white/10 border-r-0 bg-white dark:bg-[#202337] p-0 text-slate-900 dark:text-slate-100 shadow-2xl">
+      <div className="border-b border-slate-200 dark:border-white/10 p-6">
+        <SheetTitle className="text-2xl font-black text-slate-900 dark:text-white">{title}</SheetTitle>
+        <SheetDescription className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</SheetDescription>
       </div>
 
       <div className="space-y-6 p-6">
@@ -267,19 +267,19 @@ function FilterDrawer({
           <FilterSelect label="Dimension Filter" value={draftFilters.dimensionFilter} options={dimensionFilterOptions} onChange={(value) => updateFilter("dimensionFilter", value)} />
         </DrawerSection>
 
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-          <div className="flex items-center gap-2 text-sm font-black text-slate-200">
+        <div className="rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.04] p-4">
+          <div className="flex items-center gap-2 text-sm font-black text-slate-700 dark:text-slate-200">
             <Sparkles className="h-4 w-4 text-[#ef405b]" />
             NLQ-ready context
           </div>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
+          <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
             This declarative context can later be populated from prompts like “Compare TikTok against YouTube for May.”
           </p>
         </div>
       </div>
 
-      <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-white/10 bg-[#202337]/95 p-5 backdrop-blur">
-        <div className="text-xs font-semibold text-slate-500">Editing {context.label}</div>
+      <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-slate-200 dark:border-white/10 bg-white dark:bg-[#202337]/95 p-5 backdrop-blur">
+        <div className="text-xs font-semibold text-slate-400 dark:text-slate-500">Editing {context.label}</div>
         <SheetClose asChild>
           <Button className="rounded-full bg-[#d3455d] px-7 font-bold text-white hover:bg-[#e14e68]" onClick={() => onApply(draftFilters, draftDateRange)}>
             <Check className="mr-2 h-4 w-4" />
@@ -293,8 +293,8 @@ function FilterDrawer({
 
 function CompactDateRange({ value, onChange }: { value: DateRange; onChange: (value: DateRange) => void }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-[#2d3147] p-3">
-      <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+    <div className="rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#2d3147] p-3">
+      <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">
         <CalendarDays className="h-3.5 w-3.5" />
         Date
       </div>
@@ -303,14 +303,14 @@ function CompactDateRange({ value, onChange }: { value: DateRange; onChange: (va
           type="date"
           value={value.start}
           onChange={(event) => onChange({ ...value, start: event.target.value })}
-          className="h-8 min-w-0 rounded-md border border-transparent bg-transparent text-sm font-bold text-slate-100 outline-none focus:border-[#ef405b]/40"
+          className="h-8 min-w-0 rounded-md border border-transparent bg-transparent text-sm font-bold text-slate-900 dark:text-slate-100 outline-none focus:border-[#ef405b]/40"
         />
-        <span className="text-slate-500">–</span>
+        <span className="text-slate-400 dark:text-slate-500">–</span>
         <input
           type="date"
           value={value.end}
           onChange={(event) => onChange({ ...value, end: event.target.value })}
-          className="h-8 min-w-0 rounded-md border border-transparent bg-transparent text-sm font-bold text-slate-100 outline-none focus:border-[#ef405b]/40"
+          className="h-8 min-w-0 rounded-md border border-transparent bg-transparent text-sm font-bold text-slate-900 dark:text-slate-100 outline-none focus:border-[#ef405b]/40"
         />
       </div>
     </div>
@@ -329,15 +329,15 @@ function CompactSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="group rounded-lg border border-white/10 bg-[#2d3147] p-3 transition hover:border-white/20">
-      <div className="mb-2 flex items-center justify-between text-xs font-black uppercase tracking-wide text-slate-500">
+    <label className="group rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#2d3147] p-3 transition hover:border-slate-300 dark:hover:border-white/20">
+      <div className="mb-2 flex items-center justify-between text-xs font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">
         {label}
         <ChevronDown className="h-3.5 w-3.5" />
       </div>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-8 w-full bg-transparent text-sm font-bold text-slate-100 outline-none"
+        className="h-8 w-full bg-transparent text-sm font-bold text-slate-900 dark:text-slate-100 outline-none"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -361,12 +361,12 @@ function FilterSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-bold text-slate-200">
+    <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
       {label}
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-md border border-white/10 bg-[#2d3147] px-3 text-sm font-semibold text-slate-100 outline-none transition focus:border-[#ef405b] focus:ring-2 focus:ring-[#ef405b]/30"
+        className="h-11 w-full rounded-md border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#2d3147] px-3 text-sm font-semibold text-slate-900 dark:text-slate-100 outline-none transition focus:border-[#ef405b] focus:ring-2 focus:ring-[#ef405b]/30"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -380,8 +380,8 @@ function FilterSelect({
 
 function DrawerSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="space-y-3 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-      <h3 className="text-sm font-black uppercase tracking-wide text-slate-400">{title}</h3>
+    <section className="space-y-3 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] p-4">
+      <h3 className="text-sm font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">{title}</h3>
       <div className="grid gap-3 sm:grid-cols-2">{children}</div>
     </section>
   );
@@ -392,12 +392,12 @@ function FilterChip({ label, tone = "neutral", onRemove }: { label: string; tone
     <span
       className={cn(
         "inline-flex max-w-[18rem] animate-in fade-in-0 zoom-in-95 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold transition",
-        tone === "primary" ? "bg-[#ef405b]/15 text-rose-100" : "bg-white/[0.07] text-slate-300"
+        tone === "primary" ? "bg-[#ef405b]/15 text-rose-100" : "bg-slate-100 dark:bg-white/[0.07] text-slate-700 dark:text-slate-300"
       )}
     >
       <span className="truncate">{label}</span>
       {onRemove ? (
-        <button type="button" onClick={onRemove} className="rounded-full p-0.5 text-slate-400 transition hover:bg-white/10 hover:text-white">
+        <button type="button" onClick={onRemove} className="rounded-full p-0.5 text-slate-500 dark:text-slate-400 transition hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white">
           <X className="h-3 w-3" />
         </button>
       ) : null}
