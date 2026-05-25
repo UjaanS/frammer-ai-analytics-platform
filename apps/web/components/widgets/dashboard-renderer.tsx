@@ -1,7 +1,7 @@
 "use client";
 
 import { RotateCcw } from "lucide-react";
-import { memo, useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import type { Layout } from "react-grid-layout";
 
@@ -124,6 +124,20 @@ export function DashboardGrid({
     setStoredLayout(definition.id, activeLayout);
   }, [activeLayout, definition.id, layoutMode, setLayoutMode, setStoredLayout]);
 
+  const notifyChartsOfResize = useCallback(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+    });
+  }, []);
+
+  const handleLayoutChange = useCallback(
+    (nextLayout: Layout[]) => {
+      updateLayout(nextLayout);
+      notifyChartsOfResize();
+    },
+    [notifyChartsOfResize, updateLayout]
+  );
+
   return (
     <div className={ENABLE_NEW_GRID_SYSTEM ? "space-y-4" : "space-y-5"}>
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -164,22 +178,32 @@ export function DashboardGrid({
           rowHeight={density.rowHeight}
           margin={density.margin}
           containerPadding={[0, 0]}
+          compactType="vertical"
           draggableHandle=".widget-drag-handle"
           draggableCancel="button,input,select,textarea,a,.widget-interactive,[role='button']"
-          onLayoutChange={updateLayout}
+          isBounded
+          isDraggable
+          isResizable
+          preventCollision={false}
+          resizeHandles={["se"]}
+          useCSSTransforms
+          onDragStop={handleLayoutChange}
+          onResizeStop={handleLayoutChange}
+          onBreakpointChange={notifyChartsOfResize}
         >
           {visibleWidgets.map((widget) => (
-            <WidgetGridItem
-              key={widget.id}
-              widget={widget}
-              dashboardContext={dashboardContext}
-              comparisonContext={comparisonContext}
-              compareMode={compareMode}
-              viewMode={viewMode}
-              syncHover={syncHover}
-              updateWidgetConfig={updateWidgetConfig}
-              removeWidget={removeWidget}
-            />
+            <div key={widget.id} className="min-w-0 overflow-hidden">
+              <WidgetGridItem
+                widget={widget}
+                dashboardContext={dashboardContext}
+                comparisonContext={comparisonContext}
+                compareMode={compareMode}
+                viewMode={viewMode}
+                syncHover={syncHover}
+                updateWidgetConfig={updateWidgetConfig}
+                removeWidget={removeWidget}
+              />
+            </div>
           ))}
         </ResponsiveGridLayout>
       ) : (
@@ -243,7 +267,7 @@ const WidgetGridItem = memo(function WidgetGridItem({
   );
 
   return (
-    <div className="min-w-0 overflow-hidden">
+    <div className="h-full min-w-0 overflow-hidden">
       <div className="h-full min-h-0 overflow-hidden rounded-lg">
         <WidgetRenderer widget={widget} context={rendererContext} />
       </div>

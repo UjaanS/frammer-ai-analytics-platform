@@ -42,10 +42,14 @@ export function mergeGridConfig(defaultConfig: DashboardGridConfig, storedConfig
 
 export function normalizeWidgetLayouts(widgets: WidgetSchema[], mode: AnalyticsLayoutMode = "dashboard"): Layout[] {
   const sortedWidgets = [...widgets].sort((first, second) => {
-    const firstOrder = first.position.y * 100 + first.position.x;
-    const secondOrder = second.position.y * 100 + second.position.x;
+    const firstOrder = finiteNumber(first.position.y, 0) * 100 + finiteNumber(first.position.x, 0);
+    const secondOrder = finiteNumber(second.position.y, 0) * 100 + finiteNumber(second.position.x, 0);
     return firstOrder - secondOrder;
   });
+
+  if (mode === "dashboard") {
+    return sortedWidgets.map((widget) => sanitizeDashboardLayout(widget));
+  }
 
   let cursorX = 0;
   let cursorY = 0;
@@ -84,6 +88,24 @@ export function normalizeWidgetLayouts(widgets: WidgetSchema[], mode: AnalyticsL
   });
 }
 
+function sanitizeDashboardLayout(widget: WidgetSchema): Layout {
+  const span = getWidgetGridSpan(widget, "dashboard");
+  const width = clamp(finiteNumber(widget.position.w, span.w), span.minW, 12);
+  const height = Math.max(finiteNumber(widget.position.h, span.h), span.minH);
+
+  return {
+    ...widget.position,
+    i: widget.id,
+    x: clamp(finiteNumber(widget.position.x, 0), 0, Math.max(0, 12 - width)),
+    y: Math.max(0, finiteNumber(widget.position.y, 0)),
+    w: width,
+    h: height,
+    minW: span.minW,
+    minH: span.minH,
+    maxW: 12
+  };
+}
+
 export function insertWidgetAtTop(widgets: WidgetSchema[], widgetId: string): WidgetSchema[] {
   const target = widgets.find((widget) => widget.id === widgetId);
   if (!target) return widgets;
@@ -115,4 +137,12 @@ export function insertWidgetAtTop(widgets: WidgetSchema[], widgetId: string): Wi
       }
     };
   });
+}
+
+function finiteNumber(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }

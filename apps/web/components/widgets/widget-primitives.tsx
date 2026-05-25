@@ -5,8 +5,13 @@ import { ENABLE_NEW_GRID_SYSTEM } from "@/src/modules/analytics/layout";
 
 export function WhiteChartCanvas({ children }: { children: ReactNode }) {
   return (
-    <div className={cn("h-full overflow-hidden rounded-lg bg-white text-slate-900", ENABLE_NEW_GRID_SYSTEM ? "min-h-[200px] p-3" : "min-h-[220px] p-4")}>
-      {children}
+    <div
+      className={cn(
+        "flex overflow-hidden rounded-lg bg-white text-slate-900",
+        ENABLE_NEW_GRID_SYSTEM ? "h-full min-h-[220px] p-3" : "h-[280px] min-h-[240px] p-4"
+      )}
+    >
+      <div className="min-h-0 w-full flex-1">{children}</div>
     </div>
   );
 }

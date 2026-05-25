@@ -37,12 +37,22 @@ export function useDashboardState(definition: DashboardDefinition) {
   const layout = useMemo(() => widgets.filter((widget) => widget.visible !== false).map((widget) => widget.position), [widgets]);
 
   const updateLayout = useCallback((nextLayout: Layout[]) => {
-    setWidgets((current) =>
-      current.map((widget) => {
+    setWidgets((current) => {
+      let changed = false;
+      const nextWidgets = current.map((widget) => {
         const updatedPosition = nextLayout.find((layoutItem) => layoutItem.i === widget.id);
-        return updatedPosition ? { ...widget, position: { ...widget.position, ...updatedPosition } } : widget;
-      })
-    );
+        if (!updatedPosition) return widget;
+
+        if (hasSameLayout(widget.position, updatedPosition)) {
+          return widget;
+        }
+
+        changed = true;
+        return { ...widget, position: { ...widget.position, ...updatedPosition } };
+      });
+
+      return changed ? nextWidgets : current;
+    });
   }, []);
 
   const updateWidgetConfig = useCallback((widgetId: string, config: Partial<WidgetConfig>) => {
@@ -142,4 +152,13 @@ function sanitizeStoredWidgets(widgets: WidgetSchema[]) {
 
 function finiteNumber(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function hasSameLayout(current: Layout, next: Layout) {
+  return (
+    current.x === next.x &&
+    current.y === next.y &&
+    current.w === next.w &&
+    current.h === next.h
+  );
 }

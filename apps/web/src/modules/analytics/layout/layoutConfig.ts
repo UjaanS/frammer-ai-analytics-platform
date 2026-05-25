@@ -1,8 +1,8 @@
 import type { WidgetSchema } from "@/lib/widgets/types";
 
 export const ENABLE_NEW_GRID_SYSTEM =
-  process.env.NEXT_PUBLIC_ENABLE_NEW_GRID_SYSTEM === "true" ||
-  process.env.ENABLE_NEW_GRID_SYSTEM === "true";
+  process.env.NEXT_PUBLIC_ENABLE_NEW_GRID_SYSTEM !== "false" &&
+  process.env.ENABLE_NEW_GRID_SYSTEM !== "false";
 
 export const DASHBOARD_GRID_STORAGE_PREFIX = "frammer.analytics.layout";
 

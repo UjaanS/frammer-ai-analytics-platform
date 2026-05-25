@@ -71,3 +71,17 @@
 .react-resizable-handle::after {
   border-color: rgb(203 213 225 / 0.65);
 }
+
+.react-grid-item .react-resizable-handle {
+  opacity: 0;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.react-grid-item:hover .react-resizable-handle,
+.react-grid-item:focus-within .react-resizable-handle {
+  opacity: 1;
+}
+
+.react-grid-item .react-resizable-handle:hover {
+  transform: scale(1.08);
+}
