@@ -6,7 +6,6 @@ import { useRef, useState } from "react";
 
 import { copyElementAsImage, downloadCsv, exportElementAsPng } from "@/lib/export/client-export";
 import { cn } from "@/lib/utils";
-import { ENABLE_NEW_GRID_SYSTEM } from "@/src/modules/analytics/layout";
 
 export function WidgetChrome({
   title,
@@ -53,14 +52,13 @@ export function WidgetChrome({
     <section
       ref={exportRef}
       className={cn(
-        "group flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#24283d] shadow-xl shadow-black/20",
-        ENABLE_NEW_GRID_SYSTEM ? "p-4" : "p-5",
+        "group flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#24283d] shadow-xl shadow-black/20 p-4",
         className
       )}
     >
-      <div className={cn("widget-drag-handle flex shrink-0 cursor-move flex-col md:flex-row md:items-start md:justify-between", ENABLE_NEW_GRID_SYSTEM ? "mb-3 gap-2" : "mb-4 gap-3")}>
+      <div className="widget-drag-handle flex shrink-0 cursor-move flex-col gap-2 mb-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
-          <h2 className={cn("truncate font-black text-slate-300", ENABLE_NEW_GRID_SYSTEM ? "text-lg md:text-xl" : "text-xl md:text-2xl")}>{title}</h2>
+          <h2 className="truncate font-black text-slate-300 text-lg md:text-xl">{title}</h2>
           {description ? <p className="mt-1 text-sm font-medium text-slate-400">{description}</p> : null}
         </div>
         <div
@@ -122,8 +120,7 @@ function WidgetIconButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-300 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50",
-        ENABLE_NEW_GRID_SYSTEM ? "h-7 w-7" : "h-8 w-8",
+        "inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-300 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50",
         danger ? "hover:border-rose-400/30 hover:bg-rose-500/15 hover:text-rose-100" : null
       )}
     >
