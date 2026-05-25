@@ -148,29 +148,31 @@ export function ComparisonDashboard({ definition }: { definition: DashboardDefin
               }
             />
           ) : (
-            <div ref={splitExportRef} className="grid gap-px bg-slate-200 xl:grid-cols-2 dark:bg-white/10">
-              {comparison.contexts.map((context, index) => (
-                <section key={context.id} className="max-h-[calc(100vh-11rem)] min-h-[70vh] min-w-0 overflow-y-auto bg-slate-50 p-4 dark:bg-[#10131f]">
-                  <div className={`mb-4 h-1 rounded-full ${index === 0 ? "bg-sky-400/70" : "bg-rose-400/70"}`} />
-                  <DashboardGrid
-                    definition={definition}
-                    widgets={dashboard.widgets}
-                    layout={dashboard.layout}
-                    dashboardContext={context}
-                    comparisonContext={comparison.contexts[index === 0 ? 1 : 0]}
-                    compareMode={comparison.state.compareMode}
-                    viewMode="split"
-                    syncHover={comparison.state.syncHover}
-                    chrome="panel"
-                    showActions={index === 0}
-                    updateLayout={dashboard.updateLayout}
-                    updateWidgetConfig={dashboard.updateWidgetConfig}
-                    addWidget={dashboard.addWidget}
-                    removeWidget={dashboard.removeWidget}
-                    resetDashboard={dashboard.resetDashboard}
-                  />
-                </section>
-              ))}
+            <div className="max-h-[calc(100vh-11rem)] min-h-[70vh] overflow-y-auto">
+              <div ref={splitExportRef} className="grid items-start gap-px bg-slate-200 xl:grid-cols-2 dark:bg-white/10">
+                {comparison.contexts.map((context, index) => (
+                  <section key={context.id} className="min-w-0 bg-slate-50 p-4 dark:bg-[#10131f]">
+                    <div className={`mb-4 h-1 rounded-full ${index === 0 ? "bg-sky-400/70" : "bg-rose-400/70"}`} />
+                    <DashboardGrid
+                      definition={definition}
+                      widgets={dashboard.widgets}
+                      layout={dashboard.layout}
+                      dashboardContext={context}
+                      comparisonContext={comparison.contexts[index === 0 ? 1 : 0]}
+                      compareMode={comparison.state.compareMode}
+                      viewMode="split"
+                      syncHover={comparison.state.syncHover}
+                      chrome="panel"
+                      showActions={index === 0}
+                      updateLayout={dashboard.updateLayout}
+                      updateWidgetConfig={dashboard.updateWidgetConfig}
+                      addWidget={dashboard.addWidget}
+                      removeWidget={dashboard.removeWidget}
+                      resetDashboard={dashboard.resetDashboard}
+                    />
+                  </section>
+                ))}
+              </div>
             </div>
           )}
         </section>
