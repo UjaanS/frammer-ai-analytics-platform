@@ -78,14 +78,14 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
       <section className="group relative flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 dark:border-white/10 dark:bg-[#24283d] dark:shadow-lg dark:shadow-black/20 dark:hover:border-white/20">
         {/* Top strip: explicit drag handle (left) + action buttons (right).
             Drag and expand are completely separate zones — no conflict. */}
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.06] dark:bg-white/[0.025]">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50 px-2 py-1 dark:border-white/[0.06] dark:bg-white/[0.025]">
           <div
-            className="widget-drag-handle flex min-w-0 flex-1 cursor-grab items-center gap-2 text-slate-400 transition hover:text-slate-600 active:cursor-grabbing dark:text-slate-500 dark:hover:text-slate-300"
+            className="widget-drag-handle flex min-w-0 flex-1 cursor-grab items-center gap-1.5 text-slate-400 transition hover:text-slate-600 active:cursor-grabbing dark:text-slate-500 dark:hover:text-slate-300"
             title="Move widget"
             aria-label="Move widget"
           >
-            <GripVertical className="h-4 w-4 shrink-0" />
-            <span className="truncate text-[10px] font-black uppercase tracking-[0.18em]">Move</span>
+            <GripVertical className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden truncate text-[10px] font-black uppercase tracking-[0.18em] sm:inline">Move</span>
           </div>
           <div
             className="widget-interactive flex shrink-0 items-center gap-1"
@@ -112,7 +112,7 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
                 type="button"
                 title="Remove widget"
                 aria-label="Remove widget"
-                className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 opacity-0 transition hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100 focus:opacity-100 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400 dark:hover:bg-rose-500/15 dark:hover:text-rose-100"
+                className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 opacity-70 transition hover:bg-rose-50 hover:text-rose-600 hover:opacity-100 focus:opacity-100 group-hover:opacity-100 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400 dark:hover:bg-rose-500/15 dark:hover:text-rose-100"
                 onClick={(event) => {
                   event.stopPropagation();
                   context.removeWidget?.(widget.id);
@@ -127,7 +127,7 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
         </div>
         {/* Body: click anywhere to expand. Keyboard accessible via role=button + Enter/Space. */}
         <div
-          className="widget-interactive min-h-0 flex-1 cursor-pointer p-4 transition hover:bg-slate-50/60 dark:hover:bg-white/[0.015]"
+          className="widget-interactive min-h-0 flex-1 cursor-pointer p-3 transition hover:bg-slate-50/60 dark:hover:bg-white/[0.015]"
           role="button"
           tabIndex={0}
           onClick={openKPI}
@@ -138,11 +138,11 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
             }
           }}
         >
-          <h3 className="text-base font-bold text-slate-500 dark:text-slate-400">{widget.title}</h3>
-          <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{value}</div>
-          <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{detail}</p>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{widget.title}</h3>
+          <div className="mt-1.5 text-xl font-black text-slate-900 dark:text-white">{value}</div>
+          <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">{detail}</p>
           {delta ? (
-            <div className={`mt-4 inline-flex rounded-full px-3 py-1 text-xs font-black ${delta.direction === "down" ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"}`}>
+            <div className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black ${delta.direction === "down" ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"}`}>
               {delta.direction === "up" ? "↑" : delta.direction === "down" ? "↓" : "→"} {delta.delta > 0 ? "+" : ""}
               {formatDeltaValue(delta.delta, metric)} · {delta.percent > 0 ? "+" : ""}
               {delta.percent}% vs peer

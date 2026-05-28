@@ -41,7 +41,10 @@ export const defaultContextB: DashboardContext = {
 export const defaultDashboardState: DashboardState = {
   compareMode: false,
   compareBy: "time",
-  viewMode: "split",
+  // Default to "overlay" so toggling Compare lands on a single chart with
+  // both contexts layered on shared axes. Users can still switch to "split"
+  // for side-by-side via the toolbar.
+  viewMode: "overlay",
   syncFilters: false,
   syncHover: true,
   contexts: [defaultContextA]

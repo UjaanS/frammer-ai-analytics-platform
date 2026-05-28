@@ -74,7 +74,7 @@ export function WidgetChrome({
             {actions}
           </div>
         ) : null}
-          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <div className="flex items-center gap-1 opacity-70 transition-opacity hover:opacity-100 focus-within:opacity-100 group-hover:opacity-100">
             <WidgetIconButton label="Export PNG" disabled={exporting} onClick={() => runExport("png")}>
               <Download className="h-4 w-4" />
             </WidgetIconButton>
