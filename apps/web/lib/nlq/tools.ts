@@ -1,9 +1,10 @@
-// Tool schemas presented to Claude. Schemas are intentionally permissive
-// (string fields are open-ended) — strict validation happens after the model
-// returns, in `validateActions`. This keeps the prompt small while still
-// catching hallucinations server-side.
+// Tool schemas presented to the LLM. Uses the OpenAI / Groq function-calling
+// shape: `{ type: "function", function: { name, description, parameters } }`.
+// Schemas are intentionally permissive (string fields are open-ended) — strict
+// validation happens after the model returns, in `validateActions`. This
+// keeps the prompt small while still catching hallucinations server-side.
 
-import type Anthropic from "@anthropic-ai/sdk";
+import type Groq from "groq-sdk";
 
 import {
   billableStatuses,
@@ -46,13 +47,17 @@ export const allowedValues = {
   timeGroups: TIME_GROUPS
 } as const;
 
-export const tools: Anthropic.Tool[] = [
+// Internal shape — { name, description, parameters } per tool. Wrapped into
+// Groq's { type: "function", function: {...} } shape below for export.
+type RawTool = { name: string; description: string; parameters: Record<string, unknown> };
+
+const rawTools: RawTool[] = [
   {
     name: "update_filters",
     description:
       "Set one or more filter values on a comparison context. Pass only the fields you want to change. " +
       "Use 'all' (or 'AAA - Frammer AI' for company / 'Channel-Frammer AI' for channel) as the wildcard 'show everything' sentinel.",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: {
         contextId: { type: "string", enum: [...CONTEXT_IDS] },
@@ -77,7 +82,7 @@ export const tools: Anthropic.Tool[] = [
   {
     name: "set_date_range",
     description: "Set the start and end dates for a context. Use ISO yyyy-mm-dd format.",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: {
         contextId: { type: "string", enum: [...CONTEXT_IDS] },
@@ -91,7 +96,7 @@ export const tools: Anthropic.Tool[] = [
     name: "set_compare_mode",
     description:
       "Toggle side-by-side / overlay comparison mode. Pass viewMode='overlay' for layered charts on one canvas, 'split' for two panels.",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: {
         enabled: { type: "boolean" },
@@ -103,7 +108,7 @@ export const tools: Anthropic.Tool[] = [
   {
     name: "set_persona",
     description: "Switch the active dashboard persona (client | admin | tech). Each persona has its own preset widget set.",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: {
         persona: { type: "string", enum: [...PERSONAS] }
@@ -117,7 +122,7 @@ export const tools: Anthropic.Tool[] = [
       "Add a new widget to the dashboard. The widget is placed at the top, pushing existing widgets down. " +
       "Pick the queryKey that matches the data shape the widget needs: summary (single totals), timeTrend (time series), " +
       "channelPerformance (per-channel), platformDistribution (per-platform), videoList (record list), qualityHeatmap, aiInsight.",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: {
         type: { type: "string", enum: [...WIDGET_TYPES] },
@@ -140,7 +145,7 @@ export const tools: Anthropic.Tool[] = [
   {
     name: "remove_widget",
     description: "Hide a widget by its id (the widget can be restored from the Add Widget modal).",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: { widgetId: { type: "string" } },
       required: ["widgetId"]
@@ -149,7 +154,7 @@ export const tools: Anthropic.Tool[] = [
   {
     name: "update_widget_config",
     description: "Mutate the config of an existing widget (e.g. switch metric, timeGroup, dimension).",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: {
         widgetId: { type: "string" },
@@ -170,13 +175,23 @@ export const tools: Anthropic.Tool[] = [
   {
     name: "reset_dashboard",
     description: "Restore the current persona's default widget layout. Use when the user asks to start over.",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: {},
       additionalProperties: false
     }
   }
 ];
+
+// Wrap each tool in Groq's expected ChatCompletionTool shape.
+export const tools: Groq.Chat.ChatCompletionTool[] = rawTools.map((tool) => ({
+  type: "function",
+  function: {
+    name: tool.name,
+    description: tool.description,
+    parameters: tool.parameters
+  }
+}));
 
 // Server-side validation. Runs on every action the model returns; rejects
 // the whole response if anything is off. Returns null on success or an error
