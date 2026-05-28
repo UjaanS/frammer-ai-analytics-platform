@@ -5,7 +5,7 @@ import type { Layout } from "react-grid-layout";
 
 import type { DashboardDefinition, LayoutMode, WidgetConfig, WidgetSchema } from "@/lib/widgets/types";
 import { readLocalStorage, removeLocalStorage, writeLocalStorage } from "@/lib/storage/safe-local-storage";
-import { insertWidgetAtTop } from "@/src/modules/analytics/layout";
+import { insertWidgetAtTop, organizeWidgets } from "@/src/modules/analytics/layout";
 
 type StoredDashboard = {
   widgets: WidgetSchema[];
@@ -114,6 +114,13 @@ export function useDashboardState(definition: DashboardDefinition, layoutMode: L
     setWidgets(defaultWidgets);
   }, [defaultWidgets, storageKey]);
 
+  // Auto-arrange the current widget set into a clean, type-grouped layout.
+  // Doesn't clear localStorage — the user can still hit Default Layout to
+  // get back to the preset.
+  const organizeDashboard = useCallback(() => {
+    setWidgets((current) => organizeWidgets(current, layoutMode));
+  }, [layoutMode]);
+
   return {
     widgets,
     layout,
@@ -121,7 +128,8 @@ export function useDashboardState(definition: DashboardDefinition, layoutMode: L
     updateWidgetConfig,
     addWidget,
     removeWidget,
-    resetDashboard
+    resetDashboard,
+    organizeDashboard
   };
 }
 

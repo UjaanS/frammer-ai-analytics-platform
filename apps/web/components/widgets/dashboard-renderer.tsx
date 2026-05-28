@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Wand2 } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import type { Layout } from "react-grid-layout";
@@ -14,6 +14,7 @@ import type {
   ComparisonViewMode,
   DashboardContext,
   DashboardDefinition,
+  LayoutMode,
   WidgetConfig,
   WidgetSchema
 } from "@/lib/widgets/types";
@@ -71,6 +72,7 @@ export function DashboardRenderer({
       addWidget={dashboard.addWidget}
       removeWidget={dashboard.removeWidget}
       resetDashboard={dashboard.resetDashboard}
+      organizeDashboard={dashboard.organizeDashboard}
     />
   );
 }
@@ -86,11 +88,13 @@ export type DashboardGridProps = {
   syncHover?: boolean;
   chrome?: "full" | "panel";
   showActions?: boolean;
+  layoutMode?: LayoutMode;
   updateLayout: (layout: Layout[]) => void;
   updateWidgetConfig: (widgetId: string, config: Partial<WidgetConfig>) => void;
   addWidget: (widget: WidgetSchema) => void;
   removeWidget: (widgetId: string) => void;
   resetDashboard: () => void;
+  organizeDashboard: () => void;
 };
 
 export function DashboardGrid({
@@ -108,7 +112,8 @@ export function DashboardGrid({
   updateWidgetConfig,
   addWidget,
   removeWidget,
-  resetDashboard
+  resetDashboard,
+  organizeDashboard
 }: DashboardGridProps) {
   const visibleWidgets = useMemo(
     () => widgets.filter((widget) => widget.visible !== false),
@@ -185,10 +190,20 @@ export function DashboardGrid({
             <Button
               variant="outline"
               className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-[#24283d] dark:text-slate-200 dark:hover:bg-[#2d3147]"
+              onClick={organizeDashboard}
+              title="Auto-arrange widgets by type"
+            >
+              <Wand2 className="mr-2 h-4 w-4" />
+              Organize
+            </Button>
+            <Button
+              variant="outline"
+              className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-[#24283d] dark:text-slate-200 dark:hover:bg-[#2d3147]"
               onClick={resetDashboard}
+              title="Restore the preset layout"
             >
               <RotateCcw className="mr-2 h-4 w-4" />
-              Reset Layout
+              Default Layout
             </Button>
           </div>
         ) : null}

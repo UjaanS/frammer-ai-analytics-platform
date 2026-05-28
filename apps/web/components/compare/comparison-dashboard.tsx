@@ -195,6 +195,7 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
                     addWidget={dashboard.addWidget}
                     removeWidget={dashboard.removeWidget}
                     resetDashboard={dashboard.resetDashboard}
+                    organizeDashboard={dashboard.organizeDashboard}
                   />
                 </section>
               ))}
@@ -216,6 +217,7 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
           addWidget={dashboard.addWidget}
           removeWidget={dashboard.removeWidget}
           resetDashboard={dashboard.resetDashboard}
+          organizeDashboard={dashboard.organizeDashboard}
         />
       )}
     </div>
