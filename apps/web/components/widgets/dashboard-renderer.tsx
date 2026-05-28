@@ -1,11 +1,7 @@
 "use client";
 
 import { RotateCcw } from "lucide-react";
-<<<<<<< HEAD
-import { memo, useCallback, useEffect, useMemo } from "react";
-=======
 import { useCallback, useMemo } from "react";
->>>>>>> origin/claude/elated-galileo-73ca50
 import { Responsive, WidthProvider } from "react-grid-layout";
 import type { Layout } from "react-grid-layout";
 
@@ -137,19 +133,22 @@ export function DashboardGrid({
     [layout]
   );
 
-  const handleLayoutChange = useCallback(
-    (nextLayout: Layout[]) => {
-      updateLayout(nextLayout);
-    },
-    [updateLayout]
-  );
-
+  // Charts (Recharts ResponsiveContainer) measure their parent via
+  // ResizeObserver on mount. RGL drives drag/resize purely with CSS
+  // transforms, which doesn't trigger ResizeObserver on the chart canvas.
+  // After a drag/resize/breakpoint settles, fire a window resize event so
+  // chart libraries remeasure. Double-RAF defers the dispatch until after
+  // RGL's own layout work has settled.
   const notifyChartsOfResize = useCallback(() => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
     });
   }, []);
 
+  // Persist + nudge charts on user-driven layout changes. We use
+  // onDragStop / onResizeStop (instead of onLayoutChange) so we only write
+  // localStorage once per user action — onLayoutChange fires continuously
+  // during drag and causes state churn.
   const handleLayoutChange = useCallback(
     (nextLayout: Layout[]) => {
       updateLayout(nextLayout);
@@ -195,128 +194,6 @@ export function DashboardGrid({
         ) : null}
       </div>
 
-<<<<<<< HEAD
-      {ENABLE_NEW_GRID_SYSTEM ? (
-        <ResponsiveGridLayout
-          className="layout"
-          layouts={{ lg: activeLayout, md: activeLayout, sm: activeLayout, xs: activeLayout, xxs: activeLayout }}
-          breakpoints={breakpoints}
-          cols={columns}
-          rowHeight={density.rowHeight}
-          margin={density.margin}
-          containerPadding={[0, 0]}
-          compactType="vertical"
-          draggableHandle=".widget-drag-handle"
-          draggableCancel="button,input,select,textarea,a,.widget-interactive,[role='button']"
-          isBounded
-          isDraggable
-          isResizable
-          preventCollision={false}
-          resizeHandles={["se"]}
-          useCSSTransforms
-          onDragStop={handleLayoutChange}
-          onResizeStop={handleLayoutChange}
-          onBreakpointChange={notifyChartsOfResize}
-        >
-          {visibleWidgets.map((widget) => (
-            <div key={widget.id} className="min-w-0 overflow-hidden">
-              <WidgetGridItem
-                widget={widget}
-                dashboardContext={dashboardContext}
-                comparisonContext={comparisonContext}
-                compareMode={compareMode}
-                viewMode={viewMode}
-                syncHover={syncHover}
-                updateWidgetConfig={updateWidgetConfig}
-                removeWidget={removeWidget}
-              />
-            </div>
-          ))}
-        </ResponsiveGridLayout>
-      ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-6 xl:grid-cols-12">
-          {[...visibleWidgets]
-            .sort((first, second) => (first.position.y * 100 + first.position.x) - (second.position.y * 100 + second.position.x))
-            .map((widget) => (
-              <div
-                key={widget.id}
-                className={getLegacyGridColumnClass(widget.position.w)}
-                style={{ order: finiteOrder(widget.position.y, widget.position.x) }}
-              >
-                <WidgetGridItem
-                  widget={widget}
-                  dashboardContext={dashboardContext}
-                  comparisonContext={comparisonContext}
-                  compareMode={compareMode}
-                  viewMode={viewMode}
-                  syncHover={syncHover}
-                  updateWidgetConfig={updateWidgetConfig}
-                  removeWidget={removeWidget}
-                />
-              </div>
-            ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const WidgetGridItem = memo(function WidgetGridItem({
-  widget,
-  dashboardContext,
-  comparisonContext,
-  compareMode,
-  viewMode,
-  syncHover,
-  updateWidgetConfig,
-  removeWidget
-}: {
-  widget: WidgetSchema;
-  dashboardContext: DashboardContext;
-  comparisonContext?: DashboardContext;
-  compareMode: boolean;
-  viewMode: ComparisonViewMode;
-  syncHover: boolean;
-  updateWidgetConfig: (widgetId: string, config: Partial<WidgetConfig>) => void;
-  removeWidget: (widgetId: string) => void;
-}) {
-  const rendererContext = useMemo(
-    () => ({
-      dashboardContext,
-      comparisonContext,
-      compareMode,
-      viewMode,
-      syncHover,
-      setWidgetConfig: updateWidgetConfig,
-      removeWidget
-    }),
-    [compareMode, comparisonContext, dashboardContext, removeWidget, syncHover, updateWidgetConfig, viewMode]
-  );
-
-  return (
-    <div className="h-full min-w-0 overflow-hidden">
-      <div className="h-full min-h-0 overflow-hidden rounded-lg">
-        <WidgetRenderer widget={widget} context={rendererContext} />
-      </div>
-    </div>
-  );
-});
-
-function getLegacyGridColumnClass(width: number) {
-  if (width <= 2) return "md:col-span-3 xl:col-span-2";
-  if (width <= 3) return "md:col-span-3 xl:col-span-3";
-  if (width <= 4) return "md:col-span-6 xl:col-span-4";
-  if (width <= 6) return "md:col-span-6 xl:col-span-6";
-  if (width <= 8) return "md:col-span-6 xl:col-span-8";
-  return "md:col-span-6 xl:col-span-12";
-}
-
-function finiteOrder(y: number, x: number) {
-  const safeY = Number.isFinite(y) ? y : 0;
-  const safeX = Number.isFinite(x) ? x : 0;
-  return safeY * 100 + safeX;
-}
-=======
       <ResponsiveGridLayout
         className="layout"
         layouts={responsiveLayouts}
@@ -330,8 +207,11 @@ function finiteOrder(y: number, x: number) {
         resizeHandles={["se"]}
         compactType="vertical"
         preventCollision={false}
+        isBounded
         useCSSTransforms
-        onLayoutChange={handleLayoutChange}
+        onDragStop={handleLayoutChange}
+        onResizeStop={handleLayoutChange}
+        onBreakpointChange={notifyChartsOfResize}
       >
         {visibleWidgets.map((widget) => (
           // Direct DOM children — react-grid-layout cloneElement injects
@@ -357,4 +237,3 @@ function finiteOrder(y: number, x: number) {
     </div>
   );
 }
->>>>>>> origin/claude/elated-galileo-73ca50

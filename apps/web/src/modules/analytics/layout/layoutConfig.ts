@@ -1,42 +1,6 @@
 import type { WidgetSchema } from "@/lib/widgets/types";
 
-<<<<<<< HEAD
-export const ENABLE_NEW_GRID_SYSTEM =
-  process.env.NEXT_PUBLIC_ENABLE_NEW_GRID_SYSTEM !== "false" &&
-  process.env.ENABLE_NEW_GRID_SYSTEM !== "false";
-
-export const DASHBOARD_GRID_STORAGE_PREFIX = "frammer.analytics.layout";
-
-export const dashboardGridBreakpoints = {
-  desktop: 1280,
-  tablet: 768,
-  mobile: 0
-} as const;
-
-export const dashboardGridColumns = {
-  desktop: 12,
-  tablet: 6,
-  mobile: 1
-} as const;
-
-export type DashboardGridBreakpoint = keyof typeof dashboardGridBreakpoints;
-export type AnalyticsLayoutMode = "dashboard" | "comparison";
-
-export type DashboardGridItem = {
-  id: WidgetSchema["id"];
-  columnSpan?: number;
-  rowSpan?: number;
-  order?: number;
-};
-
-export type DashboardGridConfig = {
-  dashboardId: string;
-  items: DashboardGridItem[];
-};
-
-=======
 // Tuned for compact "enterprise dashboard" density similar to Grafana / Datadog.
->>>>>>> origin/claude/elated-galileo-73ca50
 export const dashboardGridDensity = {
   compact: {
     rowHeight: 72,

@@ -1,12 +1,7 @@
 "use client";
 
-<<<<<<< HEAD
 import { Download, FileDown, GripVertical, Maximize2, Search, Sparkles, X } from "lucide-react";
-=======
-import { Download, FileDown, Maximize2, Search, Sparkles, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
->>>>>>> origin/claude/elated-galileo-73ca50
+import { useState } from "react";
 import {
   Bar,
   BarChart,
@@ -63,21 +58,7 @@ export function WidgetRenderer({ widget, context }: WidgetComponentProps) {
 }
 
 function KpiWidget({ widget, context }: WidgetComponentProps) {
-<<<<<<< HEAD
   const { isOpen, openKPI, closeKPI } = useKPIOverlay();
-=======
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
-
->>>>>>> origin/claude/elated-galileo-73ca50
   const data = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as Record<string, number>;
   const comparisonData = context.comparisonContext
     ? (getWidgetData(widget.queryKey, widget.config, context.comparisonContext) as Record<string, number>)
@@ -94,16 +75,12 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
 
   return (
     <>
-      <section
-<<<<<<< HEAD
-        className={cn(
-          "group relative flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#24283d] shadow-lg shadow-black/20 transition hover:border-white/20",
-          ENABLE_NEW_GRID_SYSTEM ? "p-0" : "p-0"
-        )}
-      >
-        <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] bg-white/[0.025] px-3 py-2">
+      <section className="group relative flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 dark:border-white/10 dark:bg-[#24283d] dark:shadow-lg dark:shadow-black/20 dark:hover:border-white/20">
+        {/* Top strip: explicit drag handle (left) + action buttons (right).
+            Drag and expand are completely separate zones — no conflict. */}
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.06] dark:bg-white/[0.025]">
           <div
-            className="widget-drag-handle flex min-w-0 flex-1 cursor-grab items-center gap-2 text-slate-500 transition hover:text-slate-300 active:cursor-grabbing"
+            className="widget-drag-handle flex min-w-0 flex-1 cursor-grab items-center gap-2 text-slate-400 transition hover:text-slate-600 active:cursor-grabbing dark:text-slate-500 dark:hover:text-slate-300"
             title="Move widget"
             aria-label="Move widget"
           >
@@ -112,51 +89,22 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
           </div>
           <div
             className="widget-interactive flex shrink-0 items-center gap-1"
-=======
-        className="widget-drag-handle group relative h-full cursor-move overflow-hidden rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 dark:border-white/10 dark:bg-[#24283d] dark:shadow-lg dark:shadow-black/20 dark:hover:border-white/20"
-      >
-        <div className="absolute right-3 top-3 flex items-center gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
-          <button
-            type="button"
-            title="Expand details"
-            aria-label="Expand details"
-            className="widget-interactive inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-            onClick={(event) => {
-              event.stopPropagation();
-              setOpen(true);
-            }}
->>>>>>> origin/claude/elated-galileo-73ca50
             onMouseDown={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
           >
-<<<<<<< HEAD
             <button
               type="button"
               title="Expand KPI"
               aria-label={`Expand ${widget.title}`}
-              className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition hover:border-[#ef405b]/40 hover:bg-[#ef405b]/15 hover:text-white hover:shadow-[0_0_18px_rgba(239,64,91,0.22)]"
+              className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-[#ef405b]/40 hover:bg-[#ef405b]/10 hover:text-[#ef405b] dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400 dark:hover:border-[#ef405b]/40 dark:hover:bg-[#ef405b]/15 dark:hover:text-white"
               onClick={(event) => {
                 event.stopPropagation();
                 openKPI();
-=======
-            <Maximize2 className="h-3.5 w-3.5" />
-          </button>
-          {context.removeWidget ? (
-            <button
-              type="button"
-              title="Remove widget"
-              aria-label="Remove widget"
-              className="widget-interactive inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-600 transition hover:bg-rose-50 hover:text-rose-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400 dark:hover:bg-rose-500/15 dark:hover:text-rose-100"
-              onClick={(event) => {
-                event.stopPropagation();
-                context.removeWidget?.(widget.id);
->>>>>>> origin/claude/elated-galileo-73ca50
               }}
               onMouseDown={(event) => event.stopPropagation()}
               onPointerDown={(event) => event.stopPropagation()}
             >
-<<<<<<< HEAD
               <Maximize2 className="h-4 w-4" />
             </button>
             {context.removeWidget ? (
@@ -164,7 +112,7 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
                 type="button"
                 title="Remove widget"
                 aria-label="Remove widget"
-                className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 opacity-0 transition hover:bg-rose-500/15 hover:text-rose-100 group-hover:opacity-100 focus:opacity-100"
+                className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 opacity-0 transition hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100 focus:opacity-100 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400 dark:hover:bg-rose-500/15 dark:hover:text-rose-100"
                 onClick={(event) => {
                   event.stopPropagation();
                   context.removeWidget?.(widget.id);
@@ -177,11 +125,9 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
             ) : null}
           </div>
         </div>
+        {/* Body: click anywhere to expand. Keyboard accessible via role=button + Enter/Space. */}
         <div
-          className={cn(
-            "widget-interactive min-h-0 flex-1 cursor-pointer transition hover:bg-white/[0.015]",
-            ENABLE_NEW_GRID_SYSTEM ? "p-4" : "p-5"
-          )}
+          className="widget-interactive min-h-0 flex-1 cursor-pointer p-4 transition hover:bg-slate-50/60 dark:hover:bg-white/[0.015]"
           role="button"
           tabIndex={0}
           onClick={openKPI}
@@ -192,11 +138,11 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
             }
           }}
         >
-          <h3 className={cn("pr-1 font-bold text-slate-400", ENABLE_NEW_GRID_SYSTEM ? "text-base" : "text-lg")}>{widget.title}</h3>
-          <div className={cn("font-black text-white", ENABLE_NEW_GRID_SYSTEM ? "mt-3 text-2xl" : "mt-5 text-3xl")}>{value}</div>
-          <p className="mt-2 text-sm font-semibold text-slate-300">{detail}</p>
+          <h3 className="text-base font-bold text-slate-500 dark:text-slate-400">{widget.title}</h3>
+          <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{value}</div>
+          <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{detail}</p>
           {delta ? (
-            <div className={`mt-4 inline-flex rounded-full px-3 py-1 text-xs font-black ${delta.direction === "down" ? "bg-rose-500/15 text-rose-200" : "bg-emerald-500/15 text-emerald-200"}`}>
+            <div className={`mt-4 inline-flex rounded-full px-3 py-1 text-xs font-black ${delta.direction === "down" ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"}`}>
               {delta.direction === "up" ? "↑" : delta.direction === "down" ? "↓" : "→"} {delta.delta > 0 ? "+" : ""}
               {formatDeltaValue(delta.delta, metric)} · {delta.percent > 0 ? "+" : ""}
               {delta.percent}% vs peer
@@ -227,66 +173,6 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
           </WhiteChartCanvas>
         }
       />
-=======
-              <X className="h-4 w-4" />
-            </button>
-          ) : null}
-        </div>
-        <h3 className="text-base font-bold text-slate-500 dark:text-slate-400">{widget.title}</h3>
-        <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{value}</div>
-        <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{detail}</p>
-        {delta ? (
-          <div className={`mt-4 inline-flex rounded-full px-3 py-1 text-xs font-black ${delta.direction === "down" ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"}`}>
-            {delta.direction === "up" ? "↑" : delta.direction === "down" ? "↓" : "→"} {delta.delta > 0 ? "+" : ""}
-            {formatDeltaValue(delta.delta, metric)} · {delta.percent > 0 ? "+" : ""}
-            {delta.percent}% vs peer
-          </div>
-        ) : null}
-      </section>
-
-      {open && typeof document !== "undefined"
-        ? createPortal(
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 dark:bg-black/60" onClick={() => setOpen(false)}>
-              <div className="widget-interactive w-full max-w-3xl rounded-lg border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#24283d]" onClick={(event) => event.stopPropagation()}>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-xs font-black uppercase tracking-wide text-[#ef405b]">Metric breakdown</div>
-                    <h2 className="mt-1 text-2xl font-black text-slate-900 dark:text-white">{widget.title}</h2>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{context.dashboardContext.label} · {detail}</p>
-                  </div>
-                  <button type="button" className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white" onClick={() => setOpen(false)}>
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-                <div className="mt-5 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-[#2d3147]">
-                    <div className="text-sm font-bold text-slate-500 dark:text-slate-400">Current value</div>
-                    <div className="mt-3 text-4xl font-black text-slate-900 dark:text-white">{value}</div>
-                    <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{detail}</p>
-                    {delta ? (
-                      <div className="mt-4 rounded-lg bg-slate-100 p-3 text-sm font-bold text-slate-700 dark:bg-white/[0.04] dark:text-slate-200">
-                        {delta.percent > 0 ? "+" : ""}{delta.percent}% vs comparison context
-                      </div>
-                    ) : null}
-                  </div>
-                  <WhiteChartCanvas>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={trendData} margin={{ left: 8, right: 16, top: 12, bottom: 8 }}>
-                        <CartesianGrid stroke="#e8e8ee" />
-                        <XAxis dataKey="label" tick={{ fill: "#4b5563", fontSize: 12 }} tickLine={false} />
-                        <YAxis tick={{ fill: "#4b5563", fontSize: 12 }} tickLine={false} />
-                        <Tooltip formatter={(item) => formatMetricValue(Number(item), trendKey.includes("Duration") ? "duration" : "count")} />
-                        <Line type="monotone" dataKey={trendKey} name={widget.title} stroke={chartColors.published} strokeWidth={3} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </WhiteChartCanvas>
-                </div>
-              </div>
-            </div>,
-            document.body
-          )
-        : null}
->>>>>>> origin/claude/elated-galileo-73ca50
     </>
   );
 }

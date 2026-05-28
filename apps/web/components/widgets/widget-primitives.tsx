@@ -2,18 +2,8 @@ import type { ReactNode } from "react";
 
 export function WhiteChartCanvas({ children }: { children: ReactNode }) {
   return (
-<<<<<<< HEAD
-    <div
-      className={cn(
-        "flex overflow-hidden rounded-lg bg-white text-slate-900",
-        ENABLE_NEW_GRID_SYSTEM ? "h-full min-h-[220px] p-3" : "h-[280px] min-h-[240px] p-4"
-      )}
-    >
-      <div className="min-h-0 w-full flex-1">{children}</div>
-=======
     <div className="h-full min-h-[200px] overflow-hidden rounded-lg bg-white p-3 text-slate-900">
       {children}
->>>>>>> origin/claude/elated-galileo-73ca50
     </div>
   );
 }
