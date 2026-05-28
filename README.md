@@ -27,6 +27,25 @@ npm install
 npm run dev
 ```
 
+## Deployment Source of Truth
+
+- Canonical repository root: this folder (`set-up-the-complete-project-architecture`).
+- Deployable frontend app path: `apps/web`.
+- Deployable API service path: `apps/api`.
+- Agent worktree folders (for example `.claude/worktrees/*`) are local development workspaces, not deployment roots.
+
+### Vercel (recommended for web)
+
+Set the Vercel project to this GitHub repository and configure:
+
+- Framework preset: `Next.js`
+- Root Directory: `apps/web`
+- Install Command: `npm install`
+- Build Command: `npm run build`
+- Output: default Next.js output
+
+If the project was previously connected to a worktree path, reconnect it to the repository root and then set `apps/web` as the Root Directory in Vercel settings.
+
 For the API:
 
 ```bash
