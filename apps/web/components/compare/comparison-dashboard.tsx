@@ -16,10 +16,12 @@ import type { DashboardDefinition } from "@/lib/widgets/types";
 export function ComparisonDashboard({ definition }: { definition: DashboardDefinition }) {
   const splitExportRef = useRef<HTMLDivElement>(null);
   const [exportingSplit, setExportingSplit] = useState(false);
-  const dashboard = useDashboardState(definition);
   const comparison = useComparisonDashboardState();
   const [leftContext, rightContext] = comparison.contexts;
   const shouldCompare = comparison.state.compareMode && Boolean(rightContext);
+  // Independent layouts per mode: dragging in comparison view doesn't
+  // affect the dashboard view's stored positions and vice versa.
+  const dashboard = useDashboardState(definition, shouldCompare ? "comparison" : "dashboard");
 
   async function exportSplitComparison() {
     if (!splitExportRef.current || exportingSplit) return;

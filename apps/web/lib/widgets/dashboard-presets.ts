@@ -119,22 +119,98 @@ const techWidgets: WidgetSchema[] = [
 // Definitions + lookup map
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Comparison-mode layouts — each side-by-side panel is ~half the viewport
+// width, so RGL's WidthProvider lands on the `sm` breakpoint (6 cols). We
+// size widgets for that: KPIs span 3/6 (two per row), charts span 6/6
+// (full panel width), tables full width. h values are slightly taller for
+// charts so they remain readable in the narrower panel.
+// ---------------------------------------------------------------------------
+
+const clientComparisonWidgets: WidgetSchema[] = [
+  widget("kpi-published", "kpi", "Published Videos", "summary", 0, 0, 3, 2, { metric: "published" }),
+  widget("kpi-downloads", "kpi", "Downloads", "summary", 3, 0, 3, 2, { metric: "downloads" }),
+  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 0, 2, 3, 2, { metric: "publishRate" }),
+  widget("kpi-processing", "kpi", "Avg Processing", "summary", 3, 2, 3, 2, { metric: "avgProcessing" }),
+  widget("trend-chart", "line-chart", "Publishing Trend", "timeTrend", 0, 4, 6, 7, {
+    metricMode: "count",
+    timeGroup: "day",
+    description: "Daily publishing activity."
+  }),
+  widget("channel-chart", "bar-chart", "Channel Performance", "channelPerformance", 0, 11, 6, 7, {
+    metricMode: "count",
+    dimension: "channel",
+    description: "Channel-level publish counts."
+  }),
+  widget("video-list", "table", "Recent Videos", "videoList", 0, 18, 6, 7, {
+    rowsLimit: 8,
+    columns: ["title", "published", "downloaded", "channel"]
+  })
+];
+
+const adminComparisonWidgets: WidgetSchema[] = [
+  widget("kpi-uploaded", "kpi", "Uploaded", "summary", 0, 0, 3, 2, { metric: "uploaded" }),
+  widget("kpi-processed", "kpi", "Processed", "summary", 3, 0, 3, 2, { metric: "processed" }),
+  widget("kpi-published", "kpi", "Published", "summary", 0, 2, 3, 2, { metric: "published" }),
+  widget("kpi-downloads", "kpi", "Downloads", "summary", 3, 2, 3, 2, { metric: "downloads" }),
+  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 0, 4, 3, 2, { metric: "publishRate" }),
+  widget("kpi-processing", "kpi", "Avg Processing", "summary", 3, 4, 3, 2, { metric: "avgProcessing" }),
+  widget("trend-chart", "line-chart", "Pipeline Trend", "timeTrend", 0, 6, 6, 7, {
+    metricMode: "count",
+    timeGroup: "day",
+    description: "Uploaded, processed, and published over time."
+  }),
+  widget("channel-chart", "bar-chart", "Channel Performance", "channelPerformance", 0, 13, 6, 7, {
+    metricMode: "count",
+    dimension: "channel",
+    description: "Channel volume with count / duration toggle."
+  }),
+  widget("platform-chart", "bar-chart", "Platform Distribution", "platformDistribution", 0, 20, 6, 7, {
+    metricMode: "count",
+    dimension: "platform",
+    description: "Channel x platform breakdown."
+  })
+];
+
+const techComparisonWidgets: WidgetSchema[] = [
+  widget("kpi-uploaded", "kpi", "Uploaded", "summary", 0, 0, 3, 2, { metric: "uploaded" }),
+  widget("kpi-processed", "kpi", "Processed", "summary", 3, 0, 3, 2, { metric: "processed" }),
+  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 0, 2, 3, 2, { metric: "publishRate" }),
+  widget("kpi-processing", "kpi", "Avg Processing", "summary", 3, 2, 3, 2, { metric: "avgProcessing" }),
+  widget("trend-chart", "line-chart", "Processing Trend", "timeTrend", 0, 4, 6, 7, {
+    metricMode: "duration",
+    timeGroup: "day",
+    description: "Processing throughput over time."
+  }),
+  widget("platform-chart", "bar-chart", "Platform Distribution", "platformDistribution", 0, 11, 6, 7, {
+    metricMode: "count",
+    dimension: "platform",
+    description: "Where content arrives from."
+  }),
+  widget("ai-insight", "ai-insight", "System Insight", "aiInsight", 0, 18, 6, 5, {
+    description: "AI-generated system observations."
+  })
+];
+
 export const clientDashboardDefinition: DashboardDefinition = {
   id: "frammer-dashboard-v5-client",
   title: "Client View",
-  widgets: clientWidgets
+  widgets: clientWidgets,
+  comparisonWidgets: clientComparisonWidgets
 };
 
 export const adminDashboardDefinition: DashboardDefinition = {
   id: "frammer-dashboard-v5-admin",
   title: "Admin View",
-  widgets: adminWidgets
+  widgets: adminWidgets,
+  comparisonWidgets: adminComparisonWidgets
 };
 
 export const techDashboardDefinition: DashboardDefinition = {
   id: "frammer-dashboard-v5-tech",
   title: "Tech Admin View",
-  widgets: techWidgets
+  widgets: techWidgets,
+  comparisonWidgets: techComparisonWidgets
 };
 
 export const personaDefinitions: Record<Persona, DashboardDefinition> = {

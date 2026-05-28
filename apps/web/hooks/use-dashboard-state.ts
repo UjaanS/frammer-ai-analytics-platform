@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Layout } from "react-grid-layout";
 
-import type { DashboardDefinition, WidgetConfig, WidgetSchema } from "@/lib/widgets/types";
+import type { DashboardDefinition, LayoutMode, WidgetConfig, WidgetSchema } from "@/lib/widgets/types";
 import { readLocalStorage, removeLocalStorage, writeLocalStorage } from "@/lib/storage/safe-local-storage";
 import { insertWidgetAtTop } from "@/src/modules/analytics/layout";
 
@@ -11,23 +11,51 @@ type StoredDashboard = {
   widgets: WidgetSchema[];
 };
 
-export function useDashboardState(definition: DashboardDefinition) {
-  const storageKey = `frammer-dashboard:${definition.id}`;
-  const [widgets, setWidgets] = useState<WidgetSchema[]>(definition.widgets);
-  const [isHydrated, setIsHydrated] = useState(false);
+// Pick the right widget set for the active layout mode. Comparison mode
+// falls back to the dashboard widgets when no comparison-specific layout
+// is provided in the definition.
+function selectDefaultWidgets(definition: DashboardDefinition, mode: LayoutMode): WidgetSchema[] {
+  if (mode === "comparison" && definition.comparisonWidgets) {
+    return definition.comparisonWidgets;
+  }
+  return definition.widgets;
+}
+
+export function useDashboardState(definition: DashboardDefinition, layoutMode: LayoutMode = "dashboard") {
+  // Storage key includes the layout mode so dragging in dashboard mode never
+  // touches the comparison-mode layout and vice versa.
+  const storageKey = `frammer-dashboard:${definition.id}:${layoutMode}`;
+  const defaultWidgets = useMemo(() => selectDefaultWidgets(definition, layoutMode), [definition, layoutMode]);
+
+  // Track the storageKey alongside widgets so we can detect mode/persona
+  // changes and reset to the new default synchronously (before localStorage
+  // hydration in useEffect re-runs).
+  const [widgets, setWidgets] = useState<WidgetSchema[]>(defaultWidgets);
+  const [hydratedKey, setHydratedKey] = useState<string | null>(null);
+
+  if (hydratedKey !== null && hydratedKey !== storageKey) {
+    // Mode or persona changed — drop to default immediately; useEffect below
+    // will hydrate from the new key on the next tick.
+    setWidgets(defaultWidgets);
+    setHydratedKey(null);
+  }
 
   useEffect(() => {
     const raw = readLocalStorage(storageKey);
     if (raw) {
       try {
         const stored = JSON.parse(raw) as StoredDashboard;
-        setWidgets(reconcileWidgets(definition.widgets, stored.widgets));
+        setWidgets(reconcileWidgets(defaultWidgets, stored.widgets));
       } catch {
-        setWidgets(definition.widgets);
+        setWidgets(defaultWidgets);
       }
+    } else {
+      setWidgets(defaultWidgets);
     }
-    setIsHydrated(true);
-  }, [definition.widgets, storageKey]);
+    setHydratedKey(storageKey);
+  }, [defaultWidgets, storageKey]);
+
+  const isHydrated = hydratedKey === storageKey;
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -83,8 +111,8 @@ export function useDashboardState(definition: DashboardDefinition) {
 
   const resetDashboard = useCallback(() => {
     removeLocalStorage(storageKey);
-    setWidgets(definition.widgets);
-  }, [definition.widgets, storageKey]);
+    setWidgets(defaultWidgets);
+  }, [defaultWidgets, storageKey]);
 
   return {
     widgets,

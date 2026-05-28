@@ -86,7 +86,12 @@ export type DashboardDefinition = {
   id: string;
   title: string;
   widgets: WidgetSchema[];
+  // Optional alternate layout used when the dashboard renders inside a
+  // narrow comparison panel. Falls back to `widgets` when not provided.
+  comparisonWidgets?: WidgetSchema[];
 };
+
+export type LayoutMode = "dashboard" | "comparison";
 
 export type WidgetDataContext = {
   dashboardContext: DashboardContext;
