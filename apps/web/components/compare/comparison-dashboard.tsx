@@ -8,6 +8,7 @@ import { useComparisonDashboardState } from "@/hooks/use-comparison-dashboard-st
 import { ComparisonSummaryBanner } from "@/components/compare/comparison-summary-banner";
 import { ComparisonToolbar } from "@/components/compare/comparison-toolbar";
 import { ContextFilterPanel } from "@/components/compare/context-filter-panel";
+import { NlqInput } from "@/components/compare/nlq-input";
 import { DashboardGrid } from "@/components/widgets/dashboard-renderer";
 import { Button } from "@/components/ui/button";
 import { exportElementAsPng } from "@/lib/export/client-export";
@@ -92,51 +93,65 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
   }
 
   return (
-    <div className="space-y-6">
-      <ComparisonToolbar
-        compareMode={comparison.state.compareMode}
-        compareBy={comparison.state.compareBy}
-        viewMode={comparison.state.viewMode}
-        syncFilters={comparison.state.syncFilters}
-        syncHover={comparison.state.syncHover}
-        onCompareModeChange={comparison.setCompareMode}
-        onCompareByChange={comparison.setCompareBy}
-        onViewModeChange={comparison.setViewMode}
-        onSyncFiltersChange={comparison.setSyncFilters}
-        onSyncHoverChange={comparison.setSyncHover}
-        onCloneLeftToRight={comparison.cloneLeftToRight}
-        onSwapContexts={comparison.swapContexts}
-        onReset={comparison.resetComparison}
-      />
+    <div className="space-y-4">
+      {/* NLQ hero — primary interaction surface, present in both modes. */}
+      <NlqInput onSubmit={handleNlqSubmit} />
 
       {shouldCompare ? (
-        <section className="grid items-stretch gap-4 transition-all duration-300 xl:grid-cols-[1fr_auto_1fr]">
+        <>
+          {/* Single-context bar carrying just the mode toggle so the user
+              can drop back to dashboard view without hunting; per-context
+              filters live in the two ComparisonContextCards below. */}
           <ContextFilterPanel
             context={leftContext}
-            compact
+            compareMode
             onUpdateFilters={comparison.updateContextFilters}
             onUpdateDateRange={comparison.updateContextDateRange}
+            onCompareModeChange={comparison.setCompareMode}
           />
-          <div className="flex items-center justify-center">
-            <span className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500 shadow-sm dark:border-white/10 dark:bg-[#24283d] dark:text-slate-400 dark:shadow-lg dark:shadow-black/20">
-              VS
-            </span>
-          </div>
-          {rightContext ? (
+          <ComparisonToolbar
+            compareMode={comparison.state.compareMode}
+            compareBy={comparison.state.compareBy}
+            viewMode={comparison.state.viewMode}
+            syncFilters={comparison.state.syncFilters}
+            syncHover={comparison.state.syncHover}
+            onCompareByChange={comparison.setCompareBy}
+            onViewModeChange={comparison.setViewMode}
+            onSyncFiltersChange={comparison.setSyncFilters}
+            onSyncHoverChange={comparison.setSyncHover}
+            onCloneLeftToRight={comparison.cloneLeftToRight}
+            onSwapContexts={comparison.swapContexts}
+            onReset={comparison.resetComparison}
+          />
+          <section className="grid items-stretch gap-3 transition-all duration-300 xl:grid-cols-[1fr_auto_1fr]">
             <ContextFilterPanel
-              context={rightContext}
+              context={leftContext}
               compact
               onUpdateFilters={comparison.updateContextFilters}
               onUpdateDateRange={comparison.updateContextDateRange}
             />
-          ) : null}
-        </section>
+            <div className="flex items-center justify-center">
+              <span className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 shadow-sm dark:border-white/10 dark:bg-[#24283d] dark:text-slate-400">
+                VS
+              </span>
+            </div>
+            {rightContext ? (
+              <ContextFilterPanel
+                context={rightContext}
+                compact
+                onUpdateFilters={comparison.updateContextFilters}
+                onUpdateDateRange={comparison.updateContextDateRange}
+              />
+            ) : null}
+          </section>
+        </>
       ) : (
         <ContextFilterPanel
           context={leftContext}
+          compareMode={false}
           onUpdateFilters={comparison.updateContextFilters}
           onUpdateDateRange={comparison.updateContextDateRange}
-          onNlqSubmit={handleNlqSubmit}
+          onCompareModeChange={comparison.setCompareMode}
         />
       )}
 

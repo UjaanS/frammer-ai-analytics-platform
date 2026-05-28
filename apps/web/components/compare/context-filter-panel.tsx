@@ -1,18 +1,15 @@
 "use client";
 
-import { CalendarDays, Check, ChevronDown, PanelRightOpen, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, GitCompareArrows, PanelRightOpen, SlidersHorizontal, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { NlqInput } from "@/components/compare/nlq-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { channels, companies, inputTypes, publishedStatuses, users } from "@/lib/analytics/mock-data";
 import { cn } from "@/lib/utils";
 import type { DashboardContext, DateRange, ReportFilterState } from "@/lib/widgets/types";
-
-export type NlqSubmit = (query: string) => Promise<{ summary: string }>;
 
 const contextAccent: Record<string, { border: string; text: string; bg: string; glow: string }> = {
   "context-a": {
@@ -32,15 +29,17 @@ const contextAccent: Record<string, { border: string; text: string; bg: string; 
 export function ContextFilterPanel({
   context,
   compact = false,
+  compareMode = false,
   onUpdateFilters,
   onUpdateDateRange,
-  onNlqSubmit
+  onCompareModeChange
 }: {
   context: DashboardContext;
   compact?: boolean;
+  compareMode?: boolean;
   onUpdateFilters: (contextId: string, filters: Partial<ReportFilterState>) => void;
   onUpdateDateRange: (contextId: string, dateRange: DateRange) => void;
-  onNlqSubmit?: NlqSubmit;
+  onCompareModeChange?: (enabled: boolean) => void;
 }) {
   if (compact) {
     return (
@@ -53,25 +52,31 @@ export function ContextFilterPanel({
   }
 
   return (
-    <StandardContextHeader
+    <StandardContextBar
       context={context}
+      compareMode={compareMode}
       onUpdateFilters={onUpdateFilters}
       onUpdateDateRange={onUpdateDateRange}
-      onNlqSubmit={onNlqSubmit}
+      onCompareModeChange={onCompareModeChange}
     />
   );
 }
 
-function StandardContextHeader({
+// Single dense bar: date · company · channel · comparison-window selects on the
+// left; mode toggle, advanced-filters sheet, and apply on the right. No big
+// title, no helper paragraph — the chip strip below carries active context.
+function StandardContextBar({
   context,
+  compareMode,
   onUpdateFilters,
   onUpdateDateRange,
-  onNlqSubmit
+  onCompareModeChange
 }: {
   context: DashboardContext;
+  compareMode: boolean;
   onUpdateFilters: (contextId: string, filters: Partial<ReportFilterState>) => void;
   onUpdateDateRange: (contextId: string, dateRange: DateRange) => void;
-  onNlqSubmit?: NlqSubmit;
+  onCompareModeChange?: (enabled: boolean) => void;
 }) {
   const [draftFilters, setDraftFilters] = useState(context.filters);
   const [draftDateRange, setDraftDateRange] = useState(context.dateRange);
@@ -80,6 +85,12 @@ function StandardContextHeader({
     setDraftFilters(context.filters);
     setDraftDateRange(context.dateRange);
   }, [context]);
+
+  // Apply button only renders when there's something to commit.
+  const isDirty = useMemo(
+    () => !shallowFiltersEqual(draftFilters, context.filters) || draftDateRange.start !== context.dateRange.start || draftDateRange.end !== context.dateRange.end,
+    [draftFilters, draftDateRange, context.filters, context.dateRange]
+  );
 
   function updateFilter<Key extends keyof ReportFilterState>(key: Key, value: ReportFilterState[Key]) {
     setDraftFilters((current) => ({ ...current, [key]: value }));
@@ -97,32 +108,37 @@ function StandardContextHeader({
     setDraftFilters(nextFilters);
   }
 
-  return (
-    <Card className="overflow-hidden border-slate-200 dark:border-white/10 bg-white dark:bg-[#24283d]/95 shadow-xl shadow-black/20">
-      <CardContent className="p-5">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-[#ef405b]">
-              <Sparkles className="h-4 w-4" />
-              Analytics Context
-            </div>
-            <h1 className="mt-2 truncate text-2xl font-black text-slate-900 dark:text-slate-100">
-              {formatDateRangeLabel(context.dateRange)} · {context.filters.company} · {context.filters.channel}
-            </h1>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Primary scope first. Power filters stay one click away.</p>
-          </div>
+  const chips = buildFilterChips(context);
 
-          <div className="flex flex-wrap items-center gap-2">
+  return (
+    <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#24283d]/95">
+      <CardContent className="p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Core filters — inline, compact */}
+          <InlineDateRange value={draftDateRange} onChange={setDraftDateRange} />
+          <InlinePill label="Company" value={draftFilters.company} options={companyOptions} onChange={(value) => updateFilter("company", value)} />
+          <InlinePill label="Channel" value={draftFilters.channel} options={channelOptions} onChange={(value) => updateFilter("channel", value)} />
+          <InlinePill label="Comparison" value={draftFilters.comparison} options={comparisonOptions} onChange={(value) => updateFilter("comparison", value)} />
+
+          {/* Right-side: mode toggle + advanced + apply */}
+          <div className="ml-auto flex items-center gap-1.5">
+            {onCompareModeChange ? (
+              <ModeToggle compareMode={compareMode} onCompareModeChange={onCompareModeChange} />
+            ) : null}
+
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" className="h-10 rounded-full border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#2d3147] px-4 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/10">
-                  <SlidersHorizontal className="mr-2 h-4 w-4" />
-                  Advanced Filters
+                <Button
+                  variant="ghost"
+                  className="h-8 gap-1.5 rounded-md px-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Advanced
                 </Button>
               </SheetTrigger>
               <FilterDrawer
                 title="Advanced Filters"
-                description="Refine users, content type, dimensions, and publish state without crowding the workspace."
+                description="Users, content type, segmentation, and publish state."
                 context={context}
                 initialFilters={draftFilters}
                 initialDateRange={draftDateRange}
@@ -135,35 +151,76 @@ function StandardContextHeader({
                 }}
               />
             </Sheet>
-            <Button className="h-10 rounded-full bg-[#d3455d] px-6 font-bold text-white hover:bg-[#e14e68]" onClick={applyFilters}>
-              <Check className="mr-2 h-4 w-4" />
-              Apply
-            </Button>
+
+            {isDirty ? (
+              <Button
+                className="h-8 gap-1.5 rounded-md bg-[#d3455d] px-3 text-xs font-bold text-white hover:bg-[#e14e68]"
+                onClick={applyFilters}
+              >
+                <Check className="h-3.5 w-3.5" />
+                Apply
+              </Button>
+            ) : null}
           </div>
         </div>
 
-        {onNlqSubmit ? (
-          <div className="mt-5">
-            <NlqInput onSubmit={onNlqSubmit} />
+        {chips.length > 0 ? (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-2.5 dark:border-white/[0.05]">
+            {chips.map((chip) => (
+              <FilterChip
+                key={chip.key}
+                label={chip.label}
+                tone={chip.tone}
+                onRemove={chip.removable ? () => removeFilter(chip.key) : undefined}
+              />
+            ))}
           </div>
         ) : null}
-
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-[1.15fr_1fr_1fr_0.9fr]">
-          <CompactDateRange value={draftDateRange} onChange={setDraftDateRange} />
-          <CompactSelect label="Company" value={draftFilters.company} options={companyOptions} onChange={(value) => updateFilter("company", value)} />
-          <CompactSelect label="Channel" value={draftFilters.channel} options={channelOptions} onChange={(value) => updateFilter("channel", value)} />
-          <CompactSelect label="Compare" value={draftFilters.comparison} options={comparisonOptions} onChange={(value) => updateFilter("comparison", value)} />
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">Selected</span>
-          {buildFilterChips(context).map((chip) => (
-            <FilterChip key={chip.key} label={chip.label} tone={chip.tone} onRemove={chip.removable ? () => removeFilter(chip.key) : undefined} />
-          ))}
-        </div>
       </CardContent>
     </Card>
   );
+}
+
+function ModeToggle({
+  compareMode,
+  onCompareModeChange
+}: {
+  compareMode: boolean;
+  onCompareModeChange: (enabled: boolean) => void;
+}) {
+  return (
+    <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5 text-xs font-semibold dark:border-white/10 dark:bg-white/[0.04]">
+      <button
+        type="button"
+        onClick={() => onCompareModeChange(false)}
+        className={cn(
+          "rounded px-2.5 py-1 transition",
+          !compareMode
+            ? "bg-white text-slate-900 shadow-sm dark:bg-[#2d3147] dark:text-white"
+            : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        )}
+      >
+        Single
+      </button>
+      <button
+        type="button"
+        onClick={() => onCompareModeChange(true)}
+        className={cn(
+          "inline-flex items-center gap-1 rounded px-2.5 py-1 transition",
+          compareMode
+            ? "bg-white text-slate-900 shadow-sm dark:bg-[#2d3147] dark:text-white"
+            : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        )}
+      >
+        <GitCompareArrows className="h-3 w-3" />
+        Compare
+      </button>
+    </div>
+  );
+}
+
+function shallowFiltersEqual(a: ReportFilterState, b: ReportFilterState): boolean {
+  return (Object.keys(a) as Array<keyof ReportFilterState>).every((key) => a[key] === b[key]);
 }
 
 function ComparisonContextCard({
@@ -281,15 +338,6 @@ function FilterDrawer({
           <FilterSelect label="Dimension Filter" value={draftFilters.dimensionFilter} options={dimensionFilterOptions} onChange={(value) => updateFilter("dimensionFilter", value)} />
         </DrawerSection>
 
-        <div className="rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.04] p-4">
-          <div className="flex items-center gap-2 text-sm font-black text-slate-700 dark:text-slate-200">
-            <Sparkles className="h-4 w-4 text-[#ef405b]" />
-            NLQ-ready context
-          </div>
-          <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-            This declarative context can later be populated from prompts like “Compare TikTok against YouTube for May.”
-          </p>
-        </div>
       </div>
 
       <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-slate-200 dark:border-white/10 bg-white dark:bg-[#202337]/95 p-5 backdrop-blur">
@@ -331,7 +379,9 @@ function CompactDateRange({ value, onChange }: { value: DateRange; onChange: (va
   );
 }
 
-function CompactSelect({
+// Pill-shaped inline filter — "Label · Value ▾" on one line. Keeps the
+// context bar dense and scannable, vs the previous boxed selects.
+function InlinePill({
   label,
   value,
   options,
@@ -342,16 +392,17 @@ function CompactSelect({
   options: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
 }) {
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? value;
   return (
-    <label className="group rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#2d3147] p-3 transition hover:border-slate-300 dark:hover:border-white/20">
-      <div className="mb-2 flex items-center justify-between text-xs font-black uppercase tracking-wide text-slate-400 dark:text-slate-500">
-        {label}
-        <ChevronDown className="h-3.5 w-3.5" />
-      </div>
+    <label className="relative inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200 dark:hover:border-white/20 dark:hover:bg-white/[0.07]">
+      <span className="text-slate-400 dark:text-slate-500">{label}</span>
+      <span className="max-w-[10rem] truncate text-slate-900 dark:text-white">{selectedLabel}</span>
+      <ChevronDown className="h-3 w-3 text-slate-400 dark:text-slate-500" />
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-8 w-full bg-transparent text-sm font-bold text-slate-900 dark:text-slate-100 outline-none"
+        className="absolute inset-0 cursor-pointer opacity-0"
+        aria-label={label}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -360,6 +411,32 @@ function CompactSelect({
         ))}
       </select>
     </label>
+  );
+}
+
+// Inline date range — formatted label on the left, native date inputs
+// surfaced only on focus / hover. Same data shape as CompactDateRange but
+// visually weighted as a peer of InlinePill.
+function InlineDateRange({ value, onChange }: { value: DateRange; onChange: (value: DateRange) => void }) {
+  return (
+    <div className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200 dark:hover:border-white/20 dark:hover:bg-white/[0.07]">
+      <CalendarDays className="h-3 w-3 text-slate-400 dark:text-slate-500" />
+      <input
+        type="date"
+        value={value.start}
+        onChange={(event) => onChange({ ...value, start: event.target.value })}
+        className="h-5 w-[110px] bg-transparent font-semibold text-slate-900 outline-none dark:text-white"
+        aria-label="Start date"
+      />
+      <span className="text-slate-300 dark:text-slate-600">–</span>
+      <input
+        type="date"
+        value={value.end}
+        onChange={(event) => onChange({ ...value, end: event.target.value })}
+        className="h-5 w-[110px] bg-transparent font-semibold text-slate-900 outline-none dark:text-white"
+        aria-label="End date"
+      />
+    </div>
   );
 }
 
@@ -405,29 +482,45 @@ function FilterChip({ label, tone = "neutral", onRemove }: { label: string; tone
   return (
     <span
       className={cn(
-        "inline-flex max-w-[18rem] animate-in fade-in-0 zoom-in-95 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold transition",
-        tone === "primary" ? "bg-[#ef405b]/15 text-rose-100" : "bg-slate-100 dark:bg-white/[0.07] text-slate-700 dark:text-slate-300"
+        "inline-flex max-w-[16rem] animate-in fade-in-0 items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium transition",
+        tone === "primary"
+          ? "bg-[#ef405b]/10 text-[#d3455d] dark:text-rose-200"
+          : "bg-slate-100 text-slate-700 dark:bg-white/[0.06] dark:text-slate-300"
       )}
     >
       <span className="truncate">{label}</span>
       {onRemove ? (
-        <button type="button" onClick={onRemove} className="rounded-full p-0.5 text-slate-500 dark:text-slate-400 transition hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white">
-          <X className="h-3 w-3" />
+        <button
+          type="button"
+          onClick={onRemove}
+          className="-mr-0.5 rounded p-0.5 text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+          aria-label="Remove filter"
+        >
+          <X className="h-2.5 w-2.5" />
         </button>
       ) : null}
     </span>
   );
 }
 
+// Chip strip only surfaces NON-default advanced filters. Date / company /
+// channel / comparison-window live as pills in the bar above, so they don't
+// double-render here.
 function buildFilterChips(context: DashboardContext): Array<{ key: keyof ReportFilterState; label: string; removable?: boolean; tone?: "neutral" | "primary" }> {
-  return [
-    { key: "comparison", label: formatDateRangeLabel(context.dateRange), tone: "primary" },
-    { key: "channel", label: context.filters.channel, tone: "primary" },
-    { key: "user", label: labelFromValue(context.filters.user, userOptions), removable: context.filters.user !== "all" },
-    { key: "videoType", label: labelFromValue(context.filters.videoType, videoTypeOptions), removable: context.filters.videoType !== "all" },
-    { key: "published", label: labelFromValue(context.filters.published, publishedOptions), removable: context.filters.published !== "all" },
-    ...(context.filters.dimension !== "none" ? [{ key: "dimension" as const, label: labelFromValue(context.filters.dimension, dimensionOptions), removable: true }] : [])
-  ];
+  const chips: Array<{ key: keyof ReportFilterState; label: string; removable?: boolean; tone?: "neutral" | "primary" }> = [];
+  if (context.filters.user !== "all") {
+    chips.push({ key: "user", label: `User: ${labelFromValue(context.filters.user, userOptions)}`, removable: true });
+  }
+  if (context.filters.videoType !== "all") {
+    chips.push({ key: "videoType", label: `Type: ${labelFromValue(context.filters.videoType, videoTypeOptions)}`, removable: true });
+  }
+  if (context.filters.published !== "all") {
+    chips.push({ key: "published", label: `Status: ${labelFromValue(context.filters.published, publishedOptions)}`, removable: true });
+  }
+  if (context.filters.dimension !== "none") {
+    chips.push({ key: "dimension", label: `Dimension: ${labelFromValue(context.filters.dimension, dimensionOptions)}`, removable: true });
+  }
+  return chips;
 }
 
 function formatDateRangeLabel(dateRange: DateRange) {
