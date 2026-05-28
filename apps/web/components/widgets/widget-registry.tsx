@@ -1,7 +1,7 @@
 "use client";
 
 import { Download, FileDown, GripVertical, Maximize2, Search, Sparkles, X } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -172,8 +172,107 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
             </ResponsiveContainer>
           </WhiteChartCanvas>
         }
+        breakdowns={<KpiBreakdowns context={context} trendKey={trendKey} />}
       />
     </>
+  );
+}
+
+// Three mini-panels rendered below the headline KPI + trend chart in the
+// expanded view: top channels (bar), platform mix (donut), recent videos
+// (compact list). All driven by existing getWidgetData query adapters; no
+// new query adapters needed.
+function KpiBreakdowns({ context, trendKey }: { context: WidgetDataContext; trendKey: string }) {
+  const channelRows = getWidgetData("channelPerformance", {}, context.dashboardContext) as Array<Record<string, string | number>>;
+  const platformRows = getWidgetData("platformDistribution", {}, context.dashboardContext) as Array<Record<string, string | number>>;
+  const videos = getWidgetData("videoList", { rowsLimit: 5 }, context.dashboardContext) as VideoRecord[];
+
+  const isDurationMetric = trendKey.toLowerCase().includes("duration");
+  const channelKey = isDurationMetric ? "publishedDuration" : "published";
+
+  const topChannels = [...channelRows]
+    .sort((a, b) => Number(b[channelKey] ?? 0) - Number(a[channelKey] ?? 0))
+    .slice(0, 5)
+    .map((row) => ({ name: String(row.channel), value: Number(row[channelKey] ?? 0) }));
+
+  const platformTotals = platformKeys
+    .map((platform) => ({
+      name: platform,
+      value: platformRows.reduce((sum, row) => sum + Number(row[`${platform}-count`] ?? 0), 0)
+    }))
+    .filter((entry) => entry.value > 0);
+
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      <BreakdownCard title="Top Channels" subtitle={isDurationMetric ? "by published duration" : "by published count"}>
+        {topChannels.length ? (
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={topChannels} layout="vertical" margin={{ left: 8, right: 12, top: 4, bottom: 4 }}>
+              <CartesianGrid stroke="#e8e8ee" horizontal={false} />
+              <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} tickLine={false} axisLine={false} />
+              <YAxis dataKey="name" type="category" tick={{ fill: "#475569", fontSize: 11 }} tickLine={false} axisLine={false} width={80} />
+              <Tooltip formatter={(value) => formatMetricValue(Number(value), isDurationMetric ? "duration" : "count")} />
+              <Bar dataKey="value" fill={chartColors.published} radius={[0, 6, 6, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <EmptyHint message="No channel data" />
+        )}
+      </BreakdownCard>
+
+      <BreakdownCard title="Platform Mix" subtitle="upload sources">
+        {platformTotals.length ? (
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie data={platformTotals} dataKey="value" innerRadius={36} outerRadius={68} paddingAngle={2}>
+                {platformTotals.map((entry, index) => (
+                  <Cell key={entry.name} fill={platformPalette[index % platformPalette.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <EmptyHint message="No platform data" />
+        )}
+      </BreakdownCard>
+
+      <BreakdownCard title="Recent Videos" subtitle={`Showing ${Math.min(5, videos.length)}`}>
+        {videos.length ? (
+          <ul className="divide-y divide-slate-200 dark:divide-white/5">
+            {videos.slice(0, 5).map((video) => (
+              <li key={video.id} className="flex items-start justify-between gap-2 py-2 text-xs">
+                <span className="line-clamp-2 font-semibold text-slate-700 dark:text-slate-200">{video.title}</span>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${video.publishedStatus === "Published" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200" : video.publishedStatus === "Failed" ? "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200" : "bg-slate-100 text-slate-600 dark:bg-white/[0.05] dark:text-slate-300"}`}>
+                  {video.publishedStatus}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyHint message="No recent videos" />
+        )}
+      </BreakdownCard>
+    </div>
+  );
+}
+
+function BreakdownCard({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-[#2d3147]">
+      <div className="mb-2">
+        <h4 className="text-xs font-black uppercase tracking-wide text-slate-700 dark:text-slate-200">{title}</h4>
+        <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">{subtitle}</p>
+      </div>
+      <div className="min-h-[180px]">{children}</div>
+    </div>
+  );
+}
+
+function EmptyHint({ message }: { message: string }) {
+  return (
+    <div className="flex h-full items-center justify-center text-xs text-slate-400 dark:text-slate-500">{message}</div>
   );
 }
 

@@ -13,10 +13,11 @@ type KPIModalProps = {
   value: string;
   comparisonSummary?: string;
   chart: ReactNode;
+  breakdowns?: ReactNode;
   onClose: () => void;
 };
 
-export function KPIModal({ open, title, contextLabel, detail, value, comparisonSummary, chart, onClose }: KPIModalProps) {
+export function KPIModal({ open, title, contextLabel, detail, value, comparisonSummary, chart, breakdowns, onClose }: KPIModalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export function KPIModal({ open, title, contextLabel, detail, value, comparisonS
             exit={{ opacity: 0 }}
           />
           <motion.div
-            className="widget-interactive relative z-[101] h-[100dvh] w-full overflow-y-auto rounded-none border border-slate-200 bg-white p-5 shadow-2xl sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:max-w-3xl sm:rounded-lg dark:border-white/10 dark:bg-[#24283d]"
+            className="widget-interactive relative z-[101] h-[100dvh] w-full overflow-y-auto rounded-none border border-slate-200 bg-white p-5 shadow-2xl sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:max-w-5xl sm:rounded-lg dark:border-white/10 dark:bg-[#24283d]"
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
@@ -99,6 +100,7 @@ export function KPIModal({ open, title, contextLabel, detail, value, comparisonS
               </div>
               {chart}
             </div>
+            {breakdowns ? <div className="mt-4">{breakdowns}</div> : null}
           </motion.div>
         </motion.div>
       ) : null}
