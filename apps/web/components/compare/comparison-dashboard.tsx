@@ -1,7 +1,7 @@
 "use client";
 
 import { Download } from "lucide-react";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { useDashboardState } from "@/hooks/use-dashboard-state";
 import { useComparisonDashboardState } from "@/hooks/use-comparison-dashboard-state";
@@ -11,9 +11,17 @@ import { ContextFilterPanel } from "@/components/compare/context-filter-panel";
 import { DashboardGrid } from "@/components/widgets/dashboard-renderer";
 import { Button } from "@/components/ui/button";
 import { exportElementAsPng } from "@/lib/export/client-export";
+import { applyNlqActions } from "@/lib/nlq/apply-actions";
+import type { NlqContextSnapshot, NlqResponse } from "@/lib/nlq/types";
+import type { Persona } from "@/lib/widgets/dashboard-presets";
 import type { DashboardDefinition } from "@/lib/widgets/types";
 
-export function ComparisonDashboard({ definition }: { definition: DashboardDefinition }) {
+type ComparisonDashboardProps = {
+  definition: DashboardDefinition;
+  setPersona?: (persona: Persona) => void;
+};
+
+export function ComparisonDashboard({ definition, setPersona }: ComparisonDashboardProps) {
   const splitExportRef = useRef<HTMLDivElement>(null);
   const [exportingSplit, setExportingSplit] = useState(false);
   const comparison = useComparisonDashboardState();
@@ -22,6 +30,56 @@ export function ComparisonDashboard({ definition }: { definition: DashboardDefin
   // Independent layouts per mode: dragging in comparison view doesn't
   // affect the dashboard view's stored positions and vice versa.
   const dashboard = useDashboardState(definition, shouldCompare ? "comparison" : "dashboard");
+
+  // Resolve the active persona from the definition id (set in dashboard-presets.ts).
+  const activePersona: Persona = definition.id.endsWith("-admin")
+    ? "admin"
+    : definition.id.endsWith("-tech")
+      ? "tech"
+      : "client";
+
+  // NLQ submit handler — POSTs the query + current state, then dispatches
+  // the returned actions through the existing dashboard/comparison hooks.
+  const handleNlqSubmit = useCallback(
+    async (query: string): Promise<{ summary: string }> => {
+      const snapshot: NlqContextSnapshot = {
+        persona: activePersona,
+        compareMode: comparison.state.compareMode,
+        viewMode: comparison.state.viewMode,
+        contexts: comparison.contexts.map((ctx) => ({
+          id: ctx.id,
+          label: ctx.label,
+          filters: ctx.filters,
+          dateRange: ctx.dateRange
+        })),
+        widgetIds: dashboard.widgets.filter((w) => w.visible !== false).map((w) => w.id)
+      };
+
+      const response = await fetch("/api/nlq", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, state: snapshot })
+      });
+
+      const result = (await response.json()) as NlqResponse;
+      if (!result.ok) throw new Error(result.error);
+
+      applyNlqActions(result.actions, {
+        updateContextFilters: comparison.updateContextFilters,
+        updateContextDateRange: comparison.updateContextDateRange,
+        setCompareMode: comparison.setCompareMode,
+        setViewMode: comparison.setViewMode,
+        setPersona: setPersona ?? (() => {}),
+        addWidget: dashboard.addWidget,
+        removeWidget: dashboard.removeWidget,
+        updateWidgetConfig: dashboard.updateWidgetConfig,
+        resetDashboard: dashboard.resetDashboard
+      });
+
+      return { summary: result.summary };
+    },
+    [activePersona, comparison, dashboard, setPersona]
+  );
 
   async function exportSplitComparison() {
     if (!splitExportRef.current || exportingSplit) return;
@@ -78,6 +136,7 @@ export function ComparisonDashboard({ definition }: { definition: DashboardDefin
           context={leftContext}
           onUpdateFilters={comparison.updateContextFilters}
           onUpdateDateRange={comparison.updateContextDateRange}
+          onNlqSubmit={handleNlqSubmit}
         />
       )}
 

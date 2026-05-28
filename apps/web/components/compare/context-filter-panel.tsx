@@ -4,12 +4,15 @@ import { CalendarDays, Check, ChevronDown, PanelRightOpen, SlidersHorizontal, Sp
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
+import { NlqInput } from "@/components/compare/nlq-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { channels, companies, inputTypes, publishedStatuses, users } from "@/lib/analytics/mock-data";
 import { cn } from "@/lib/utils";
 import type { DashboardContext, DateRange, ReportFilterState } from "@/lib/widgets/types";
+
+export type NlqSubmit = (query: string) => Promise<{ summary: string }>;
 
 const contextAccent: Record<string, { border: string; text: string; bg: string; glow: string }> = {
   "context-a": {
@@ -30,12 +33,14 @@ export function ContextFilterPanel({
   context,
   compact = false,
   onUpdateFilters,
-  onUpdateDateRange
+  onUpdateDateRange,
+  onNlqSubmit
 }: {
   context: DashboardContext;
   compact?: boolean;
   onUpdateFilters: (contextId: string, filters: Partial<ReportFilterState>) => void;
   onUpdateDateRange: (contextId: string, dateRange: DateRange) => void;
+  onNlqSubmit?: NlqSubmit;
 }) {
   if (compact) {
     return (
@@ -52,6 +57,7 @@ export function ContextFilterPanel({
       context={context}
       onUpdateFilters={onUpdateFilters}
       onUpdateDateRange={onUpdateDateRange}
+      onNlqSubmit={onNlqSubmit}
     />
   );
 }
@@ -59,11 +65,13 @@ export function ContextFilterPanel({
 function StandardContextHeader({
   context,
   onUpdateFilters,
-  onUpdateDateRange
+  onUpdateDateRange,
+  onNlqSubmit
 }: {
   context: DashboardContext;
   onUpdateFilters: (contextId: string, filters: Partial<ReportFilterState>) => void;
   onUpdateDateRange: (contextId: string, dateRange: DateRange) => void;
+  onNlqSubmit?: NlqSubmit;
 }) {
   const [draftFilters, setDraftFilters] = useState(context.filters);
   const [draftDateRange, setDraftDateRange] = useState(context.dateRange);
@@ -133,6 +141,12 @@ function StandardContextHeader({
             </Button>
           </div>
         </div>
+
+        {onNlqSubmit ? (
+          <div className="mt-5">
+            <NlqInput onSubmit={onNlqSubmit} />
+          </div>
+        ) : null}
 
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-[1.15fr_1fr_1fr_0.9fr]">
           <CompactDateRange value={draftDateRange} onChange={setDraftDateRange} />
