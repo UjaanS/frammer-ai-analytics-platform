@@ -28,9 +28,13 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
   const comparison = useComparisonDashboardState();
   const [leftContext, rightContext] = comparison.contexts;
   const shouldCompare = comparison.state.compareMode && Boolean(rightContext);
-  // Independent layouts per mode: dragging in comparison view doesn't
-  // affect the dashboard view's stored positions and vice versa.
-  const dashboard = useDashboardState(definition, shouldCompare ? "comparison" : "dashboard");
+  // Only the split-view comparison renders the grid inside narrow panels
+  // (6 cols each). Overlay-view comparison renders a single 12-col grid
+  // just like the non-compare dashboard, so it should reuse the dashboard
+  // layout — not the comparison layout (which is sized for the narrow
+  // panel and would pack widgets into the left half of a wide canvas).
+  const isSplitCompare = shouldCompare && comparison.state.viewMode === "split";
+  const dashboard = useDashboardState(definition, isSplitCompare ? "comparison" : "dashboard");
 
   // Resolve the active persona from the definition id (set in dashboard-presets.ts).
   const activePersona: Persona = definition.id.endsWith("-admin")
@@ -76,12 +80,12 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
         updateWidgetConfig: dashboard.updateWidgetConfig,
         resetDashboard: dashboard.resetDashboard,
         organizeDashboard: dashboard.organizeDashboard,
-        layoutMode: shouldCompare ? "comparison" : "dashboard"
+        layoutMode: isSplitCompare ? "comparison" : "dashboard"
       });
 
       return { summary: result.summary };
     },
-    [activePersona, comparison, dashboard, setPersona, shouldCompare]
+    [activePersona, comparison, dashboard, setPersona, isSplitCompare]
   );
 
   async function exportSplitComparison() {
