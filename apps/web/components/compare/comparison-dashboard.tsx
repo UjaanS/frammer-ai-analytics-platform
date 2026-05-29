@@ -1,6 +1,5 @@
 "use client";
 
-import { Download } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
 import { useDashboardState } from "@/hooks/use-dashboard-state";
@@ -10,7 +9,6 @@ import { ComparisonToolbar } from "@/components/compare/comparison-toolbar";
 import { ContextFilterPanel } from "@/components/compare/context-filter-panel";
 import { NlqInput } from "@/components/compare/nlq-input";
 import { DashboardGrid } from "@/components/widgets/dashboard-renderer";
-import { Button } from "@/components/ui/button";
 import { exportElementAsPng } from "@/lib/export/client-export";
 import { applyNlqActions } from "@/lib/nlq/apply-actions";
 import type { NlqContextSnapshot, NlqResponse } from "@/lib/nlq/types";
@@ -188,25 +186,24 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
         />
       )}
 
-      {shouldCompare ? <ComparisonSummaryBanner left={leftContext} right={rightContext} /> : null}
+      {/* Summary banner doubles as the side-by-side action bar in split view
+          so the "Context A vs Context B" identity isn't repeated three times
+          stacked. Export action only renders when there's something to
+          export (split view + both panels mounted). */}
+      {shouldCompare ? (
+        <ComparisonSummaryBanner
+          left={leftContext}
+          right={rightContext}
+          exportAction={
+            comparison.state.viewMode === "split"
+              ? { onClick: exportSplitComparison, disabled: exportingSplit, label: "Export both panels" }
+              : undefined
+          }
+        />
+      ) : null}
 
       {shouldCompare && comparison.state.viewMode === "split" ? (
         <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#111421] dark:shadow-xl dark:shadow-black/20">
-          <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 md:flex-row md:items-center md:justify-between dark:border-white/10 dark:bg-[#1b1f31]">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ef405b]">Side-by-side comparison</p>
-              <h2 className="mt-1 text-lg font-black text-slate-900 dark:text-slate-100">{leftContext.label} vs {rightContext?.label}</h2>
-            </div>
-            <Button
-              variant="outline"
-              className="self-start border-slate-200 bg-white text-slate-700 hover:bg-slate-50 md:self-auto dark:border-white/10 dark:bg-[#24283d] dark:text-slate-200 dark:hover:bg-[#2d3147]"
-              disabled={exportingSplit}
-              onClick={exportSplitComparison}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export both panels
-            </Button>
-          </div>
           <div className="max-h-[calc(100vh-11rem)] min-h-[70vh] overflow-y-auto">
             <div ref={splitExportRef} className="grid items-start gap-px bg-slate-200 xl:grid-cols-2 dark:bg-white/10">
               {comparison.contexts.map((context, index) => (
