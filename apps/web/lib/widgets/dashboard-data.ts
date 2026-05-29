@@ -18,16 +18,13 @@ export const chartColors = {
   published: "hsl(var(--chart-3))"
 };
 
-const queryCache = new Map<string, unknown>();
-
-export function getWidgetData(queryKey: WidgetQueryKey, config: WidgetConfig, context?: DashboardContext) {
-  const cacheKey = JSON.stringify({ queryKey, config, context });
-  if (queryCache.has(cacheKey)) return queryCache.get(cacheKey);
-
+// Run a widget query against the mock dataset. Pure function — no caching
+// (caching lives in the SWR layer client-side now). Called both server-side
+// (by /api/mock/widget-data) and synchronously where backward-compat is
+// needed (KPIModal's breakdown still consumes it inline for now).
+export function runWidgetQuery(queryKey: WidgetQueryKey, config: WidgetConfig, context?: DashboardContext) {
   const records = filterRecordsForContext(videoRecords, context);
-  const result = getContextualWidgetData(queryKey, config, records);
-  queryCache.set(cacheKey, result);
-  return result;
+  return getContextualWidgetData(queryKey, config, records);
 }
 
 function getContextualWidgetData(queryKey: WidgetQueryKey, config: WidgetConfig, records: VideoRecord[]) {

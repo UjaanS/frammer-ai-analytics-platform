@@ -2,7 +2,8 @@
 
 import { TrendingDown, TrendingUp } from "lucide-react";
 
-import { calculateDelta, getWidgetData } from "@/lib/widgets/dashboard-data";
+import { calculateDelta } from "@/lib/widgets/dashboard-data";
+import { useWidgetData } from "@/lib/widgets/use-widget-data";
 import type { DashboardContext } from "@/lib/widgets/types";
 
 const metrics = [
@@ -14,10 +15,12 @@ const metrics = [
 ];
 
 export function ComparisonSummaryBanner({ left, right }: { left: DashboardContext; right?: DashboardContext }) {
+  const { data: leftRaw } = useWidgetData<Record<string, number>>("summary", {}, left);
+  const { data: rightRaw } = useWidgetData<Record<string, number>>(right ? "summary" : null, {}, right);
   if (!right) return null;
 
-  const leftSummary = getWidgetData("summary", {}, left) as Record<string, number>;
-  const rightSummary = getWidgetData("summary", {}, right) as Record<string, number>;
+  const leftSummary = leftRaw ?? {};
+  const rightSummary = rightRaw ?? {};
   const deltas = metrics
     .map((metric) => ({
       ...metric,

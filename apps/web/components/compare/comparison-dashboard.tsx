@@ -81,7 +81,7 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
 
       return { summary: result.summary };
     },
-    [activePersona, comparison, dashboard, setPersona]
+    [activePersona, comparison, dashboard, setPersona, shouldCompare]
   );
 
   async function exportSplitComparison() {

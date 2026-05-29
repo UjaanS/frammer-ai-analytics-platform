@@ -29,11 +29,11 @@ import {
   chartColors,
   formatMetricValue,
   formatMinutes,
-  getWidgetData,
   platformKeys,
   platformPalette,
   timeGroupLabel
 } from "@/lib/widgets/dashboard-data";
+import { useWidgetData } from "@/lib/widgets/use-widget-data";
 import type { WidgetDataContext, WidgetSchema } from "@/lib/widgets/types";
 import type { VideoRecord } from "@/lib/analytics/types";
 
@@ -59,17 +59,26 @@ export function WidgetRenderer({ widget, context }: WidgetComponentProps) {
 
 function KpiWidget({ widget, context }: WidgetComponentProps) {
   const { isOpen, openKPI, closeKPI } = useKPIOverlay();
-  const data = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as Record<string, number>;
-  const comparisonData = context.comparisonContext
-    ? (getWidgetData(widget.queryKey, widget.config, context.comparisonContext) as Record<string, number>)
-    : undefined;
+  const { data: rawData } = useWidgetData<Record<string, number>>(widget.queryKey, widget.config, context.dashboardContext);
+  const { data: rawComparison } = useWidgetData<Record<string, number>>(
+    context.comparisonContext ? widget.queryKey : null,
+    widget.config,
+    context.comparisonContext
+  );
+  const { data: rawTrend } = useWidgetData<Array<Record<string, string | number>>>(
+    "timeTrend",
+    { ...widget.config, timeGroup: "day" },
+    context.dashboardContext
+  );
+  const data = rawData ?? {};
+  const comparisonData = rawComparison;
+  const trendData = rawTrend ?? [];
   const metric = widget.config.metric ?? "uploaded";
   const rawValue = data[metric] ?? 0;
   const comparisonValue = comparisonData?.[metric];
   const delta = comparisonValue === undefined ? null : calculateDelta(rawValue, comparisonValue);
   const value = metric.includes("Duration") || metric === "avgProcessing" ? formatMinutes(rawValue) : metric === "publishRate" ? `${rawValue}%` : Math.round(rawValue).toLocaleString();
   const detail = getKpiDetail(metric, data);
-  const trendData = getWidgetData("timeTrend", { ...widget.config, timeGroup: "day" }, context.dashboardContext) as Array<Record<string, string | number>>;
   const trendKey = getTrendKey(metric);
   const comparisonSummary = delta ? `${delta.percent > 0 ? "+" : ""}${delta.percent}% vs comparison context` : undefined;
 
@@ -183,9 +192,12 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
 // (compact list). All driven by existing getWidgetData query adapters; no
 // new query adapters needed.
 function KpiBreakdowns({ context, trendKey }: { context: WidgetDataContext; trendKey: string }) {
-  const channelRows = getWidgetData("channelPerformance", {}, context.dashboardContext) as Array<Record<string, string | number>>;
-  const platformRows = getWidgetData("platformDistribution", {}, context.dashboardContext) as Array<Record<string, string | number>>;
-  const videos = getWidgetData("videoList", { rowsLimit: 5 }, context.dashboardContext) as VideoRecord[];
+  const { data: channelRowsRaw } = useWidgetData<Array<Record<string, string | number>>>("channelPerformance", {}, context.dashboardContext);
+  const { data: platformRowsRaw } = useWidgetData<Array<Record<string, string | number>>>("platformDistribution", {}, context.dashboardContext);
+  const { data: videosRaw } = useWidgetData<VideoRecord[]>("videoList", { rowsLimit: 5 }, context.dashboardContext);
+  const channelRows = channelRowsRaw ?? [];
+  const platformRows = platformRowsRaw ?? [];
+  const videos = videosRaw ?? [];
 
   const isDurationMetric = trendKey.toLowerCase().includes("duration");
   const channelKey = isDurationMetric ? "publishedDuration" : "published";
@@ -279,10 +291,14 @@ function EmptyHint({ message }: { message: string }) {
 function LineChartWidget({ widget, context }: WidgetComponentProps) {
   const mode = widget.config.metricMode ?? "count";
   const timeGroup = widget.config.timeGroup ?? "day";
-  const data = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as Array<Record<string, string | number>>;
-  const comparisonData = context.comparisonContext
-    ? (getWidgetData(widget.queryKey, widget.config, context.comparisonContext) as Array<Record<string, string | number>>)
-    : [];
+  const { data: rawData } = useWidgetData<Array<Record<string, string | number>>>(widget.queryKey, widget.config, context.dashboardContext);
+  const { data: rawComparison } = useWidgetData<Array<Record<string, string | number>>>(
+    context.comparisonContext ? widget.queryKey : null,
+    widget.config,
+    context.comparisonContext
+  );
+  const data = rawData ?? [];
+  const comparisonData = rawComparison ?? [];
   const overlayData = context.viewMode === "overlay" && comparisonData.length ? mergeTimeSeries(data, comparisonData) : data;
   const currentSuffix = context.viewMode === "overlay" && comparisonData.length ? "A" : "";
 
@@ -327,10 +343,14 @@ function LineChartWidget({ widget, context }: WidgetComponentProps) {
 
 function BarChartWidget({ widget, context }: WidgetComponentProps) {
   const mode = widget.config.metricMode ?? "count";
-  const data = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as Array<Record<string, string | number>>;
-  const comparisonData = context.comparisonContext
-    ? (getWidgetData(widget.queryKey, widget.config, context.comparisonContext) as Array<Record<string, string | number>>)
-    : [];
+  const { data: rawData } = useWidgetData<Array<Record<string, string | number>>>(widget.queryKey, widget.config, context.dashboardContext);
+  const { data: rawComparison } = useWidgetData<Array<Record<string, string | number>>>(
+    context.comparisonContext ? widget.queryKey : null,
+    widget.config,
+    context.comparisonContext
+  );
+  const data = rawData ?? [];
+  const comparisonData = rawComparison ?? [];
   const isPlatform = widget.queryKey === "platformDistribution";
   const overlayData = context.viewMode === "overlay" && comparisonData.length ? mergeCategorySeries(data, comparisonData) : data;
   const platformData = context.viewMode === "overlay" && comparisonData.length ? mergePlatformSeries(data, comparisonData) : data;
@@ -396,7 +416,8 @@ function BarChartWidget({ widget, context }: WidgetComponentProps) {
 }
 
 function PieChartWidget({ widget, context }: WidgetComponentProps) {
-  const rows = getWidgetData("channelPerformance", widget.config, context.dashboardContext) as Array<Record<string, string | number>>;
+  const { data: rowsRaw } = useWidgetData<Array<Record<string, string | number>>>("channelPerformance", widget.config, context.dashboardContext);
+  const rows = rowsRaw ?? [];
   const data = rows.slice(0, 5).map((row) => ({ name: String(row.channel), value: Number(row.published) }));
 
   return (
@@ -428,9 +449,15 @@ function TableWidget({ widget, context }: WidgetComponentProps) {
   if (widget.queryKey === "videoList") {
     return <VideoListWidget widget={widget} context={context} />;
   }
+  return <DataTableWidget widget={widget} context={context} />;
+}
 
+// Extracted so the early return for videoList in TableWidget doesn't
+// violate the rules of hooks (useWidgetData must always run).
+function DataTableWidget({ widget, context }: WidgetComponentProps) {
   const mode = widget.config.metricMode ?? "count";
-  const data = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as Array<Record<string, string | number>>;
+  const { data: rawData } = useWidgetData<Array<Record<string, string | number>>>(widget.queryKey, widget.config, context.dashboardContext);
+  const data = rawData ?? [];
   const { columns, rows } = buildWidgetTable(widget, data, mode);
 
   return (
@@ -448,7 +475,8 @@ function TableWidget({ widget, context }: WidgetComponentProps) {
 
 function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: WidgetDataContext }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const videos = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as VideoRecord[];
+  const { data: videosRaw } = useWidgetData<VideoRecord[]>(widget.queryKey, widget.config, context.dashboardContext);
+  const videos = videosRaw ?? [];
 
   const filteredVideos = searchQuery.trim()
     ? videos.filter((video) => {
@@ -558,8 +586,10 @@ function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: W
 }
 
 function HeatmapWidget({ widget, context }: WidgetComponentProps) {
-  const data = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as number[][];
-  const max = Math.max(...data.flat());
+  const { data: rawData } = useWidgetData<number[][]>(widget.queryKey, widget.config, context.dashboardContext);
+  const data = rawData ?? [];
+  const flat = data.flat();
+  const max = flat.length ? Math.max(...flat) : 1;
 
   return (
     <WidgetChrome
@@ -585,7 +615,8 @@ function HeatmapWidget({ widget, context }: WidgetComponentProps) {
 }
 
 function AiInsightWidget({ widget, context }: WidgetComponentProps) {
-  const data = getWidgetData(widget.queryKey, widget.config, context.dashboardContext) as { title: string; body: string };
+  const { data: rawData } = useWidgetData<{ title: string; body: string }>(widget.queryKey, widget.config, context.dashboardContext);
+  const data = rawData ?? { title: "Loading insight…", body: "" };
 
   return (
     <WidgetChrome
