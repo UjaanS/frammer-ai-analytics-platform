@@ -94,7 +94,31 @@ function reducer(state: DashboardState, action: DashboardAction): DashboardState
     });
   }
 
-  if (action.type === "setCompareBy") return { ...state, compareBy: action.compareBy };
+  // setCompareBy: immediately snap the implied dimension of context-b
+  // to match context-a so the mode change is visible right away.
+  //   time      -> sync B.filters     <- A.filters     (B is free on dates)
+  //   dimension -> sync B.dateRange   <- A.dateRange   (B is free on filters)
+  //   custom    -> no sync
+  if (action.type === "setCompareBy") {
+    const ensured = ensureContextPair(state).contexts;
+    const left = ensured[0];
+    const right = ensured[1];
+    const nextContexts = right
+      ? [
+          left,
+          {
+            ...right,
+            filters: action.compareBy === "time" ? left.filters : right.filters,
+            dateRange: action.compareBy === "dimension" ? left.dateRange : right.dateRange
+          }
+        ]
+      : ensured;
+    return {
+      ...state,
+      compareBy: action.compareBy,
+      contexts: state.compareMode ? nextContexts : [left]
+    };
+  }
   if (action.type === "setViewMode") return { ...state, viewMode: action.viewMode };
   if (action.type === "setSyncFilters") return { ...state, syncFilters: action.syncFilters };
   if (action.type === "setSyncHover") return { ...state, syncHover: action.syncHover };
@@ -113,12 +137,26 @@ function reducer(state: DashboardState, action: DashboardAction): DashboardState
       };
     });
 
-    if (state.syncFilters && action.contextId === contexts[0]?.id && contexts[1]) {
-      contexts[1] = {
-        ...contexts[1],
-        filters: contexts[0].filters,
-        dateRange: contexts[0].dateRange
-      };
+    const editingLeft = action.contextId === contexts[0]?.id;
+
+    // compareBy-driven sync (applies only when editing the LEFT context;
+    // edits to the right context are independent on the unlocked
+    // dimension). syncFilters remains as a hard override that locks
+    // both date and filters together.
+    if (editingLeft && contexts[1]) {
+      if (state.syncFilters) {
+        contexts[1] = {
+          ...contexts[1],
+          filters: contexts[0].filters,
+          dateRange: contexts[0].dateRange
+        };
+      } else if (state.compareBy === "time") {
+        // Time mode: filters mirror A, dates diverge.
+        contexts[1] = { ...contexts[1], filters: contexts[0].filters };
+      } else if (state.compareBy === "dimension") {
+        // Dimension mode: dates mirror A, filters diverge.
+        contexts[1] = { ...contexts[1], dateRange: contexts[0].dateRange };
+      }
     }
 
     return {
