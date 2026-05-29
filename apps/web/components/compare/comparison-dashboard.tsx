@@ -74,7 +74,9 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
         addWidget: dashboard.addWidget,
         removeWidget: dashboard.removeWidget,
         updateWidgetConfig: dashboard.updateWidgetConfig,
-        resetDashboard: dashboard.resetDashboard
+        resetDashboard: dashboard.resetDashboard,
+        organizeDashboard: dashboard.organizeDashboard,
+        layoutMode: shouldCompare ? "comparison" : "dashboard"
       });
 
       return { summary: result.summary };

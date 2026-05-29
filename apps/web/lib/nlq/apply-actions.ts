@@ -2,7 +2,7 @@
 // matching dashboard / comparison hook methods. Pure function — receives the
 // bound hook methods so it stays decoupled from React component state.
 
-import type { ComparisonViewMode, DateRange, ReportFilterState, WidgetConfig, WidgetSchema } from "@/lib/widgets/types";
+import type { ComparisonViewMode, DateRange, LayoutMode, ReportFilterState, WidgetConfig, WidgetSchema } from "@/lib/widgets/types";
 import type { Persona } from "@/lib/widgets/dashboard-presets";
 import type { NlqAction } from "./types";
 
@@ -16,9 +16,12 @@ export type ApplyHandlers = {
   removeWidget: (widgetId: string) => void;
   updateWidgetConfig: (widgetId: string, config: Partial<WidgetConfig>) => void;
   resetDashboard: () => void;
+  organizeDashboard: () => void;
+  layoutMode: LayoutMode;
 };
 
 export function applyNlqActions(actions: NlqAction[], handlers: ApplyHandlers): void {
+  let needsOrganize = false;
   for (const action of actions) {
     switch (action.name) {
       case "update_filters":
@@ -42,7 +45,7 @@ export function applyNlqActions(actions: NlqAction[], handlers: ApplyHandlers): 
         break;
 
       case "add_widget": {
-        const span = defaultSpanForType(action.input.type);
+        const span = defaultSpanForType(action.input.type, handlers.layoutMode);
         const id = `nlq-${action.input.type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         const widget: WidgetSchema = {
           id,
@@ -55,11 +58,13 @@ export function applyNlqActions(actions: NlqAction[], handlers: ApplyHandlers): 
           config: action.input.config ?? {}
         };
         handlers.addWidget(widget);
+        needsOrganize = true;
         break;
       }
 
       case "remove_widget":
         handlers.removeWidget(action.input.widgetId);
+        needsOrganize = true;
         break;
 
       case "update_widget_config":
@@ -76,13 +81,21 @@ export function applyNlqActions(actions: NlqAction[], handlers: ApplyHandlers): 
         ((_x: never) => _x)(action);
     }
   }
+
+  // After a batch that touched widget membership, settle the layout into a
+  // type-grouped arrangement so the user doesn't have to manually click
+  // Organize. Deferred so all the addWidget setState calls have flushed.
+  if (needsOrganize) {
+    queueMicrotask(() => handlers.organizeDashboard());
+  }
 }
 
-// Same shape `insertWidgetAtTop` uses for fresh widgets. Kept here as a
-// local copy so the client dispatcher doesn't import server-side modules.
-function defaultSpanForType(type: WidgetSchema["type"]) {
+// Mode-aware sizing: dashboard mode targets 12 cols, comparison mode
+// targets 6 cols (narrow panel). Mirrors organizeWidgets() in gridUtils.
+function defaultSpanForType(type: WidgetSchema["type"], mode: LayoutMode) {
+  const compare = mode === "comparison";
   if (type === "kpi") return { w: 3, h: 2, minW: 2, minH: 2 };
-  if (type === "table") return { w: 12, h: 7, minW: 6, minH: 5 };
+  if (type === "table") return { w: compare ? 6 : 12, h: 7, minW: compare ? 6 : 6, minH: 5 };
   if (type === "ai-insight") return { w: 6, h: 4, minW: 3, minH: 3 };
-  return { w: 6, h: 6, minW: 3, minH: 5 };
+  return { w: 6, h: compare ? 7 : 6, minW: 3, minH: 5 };
 }
