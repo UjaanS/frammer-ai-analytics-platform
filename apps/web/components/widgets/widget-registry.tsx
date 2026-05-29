@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { KPIModal } from "@/components/widgets/KPIModal";
 import { useKPIOverlay } from "@/components/widgets/useKPIOverlay";
 import { ModeToggle, TimeGroupToggle } from "@/components/widgets/widget-controls";
-import { WidgetChrome } from "@/components/widgets/widget-chrome";
+import { WidgetChrome, useIsWidgetExpanded } from "@/components/widgets/widget-chrome";
 import { SimpleDataTable, WhiteChartCanvas } from "@/components/widgets/widget-primitives";
 import {
   calculateDelta,
@@ -456,9 +456,10 @@ function TableWidget({ widget, context }: WidgetComponentProps) {
 // violate the rules of hooks (useWidgetData must always run).
 function DataTableWidget({ widget, context }: WidgetComponentProps) {
   const mode = widget.config.metricMode ?? "count";
+  const isExpanded = useIsWidgetExpanded();
   const { data: rawData } = useWidgetData<Array<Record<string, string | number>>>(widget.queryKey, widget.config, context.dashboardContext);
   const data = rawData ?? [];
-  const { columns, rows } = buildWidgetTable(widget, data, mode);
+  const { columns, rows } = buildWidgetTable(widget, data, mode, isExpanded);
 
   return (
     <WidgetChrome
@@ -475,7 +476,12 @@ function DataTableWidget({ widget, context }: WidgetComponentProps) {
 
 function VideoListWidget({ widget, context }: { widget: WidgetSchema; context: WidgetDataContext }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: videosRaw } = useWidgetData<VideoRecord[]>(widget.queryKey, widget.config, context.dashboardContext);
+  const isExpanded = useIsWidgetExpanded();
+  // When expanded, request the full record set instead of the small preview
+  // limit. SWR caches on the full request so the in-card and expanded views
+  // each share their own cached payload.
+  const effectiveConfig = isExpanded ? { ...widget.config, rowsLimit: 1000 } : widget.config;
+  const { data: videosRaw } = useWidgetData<VideoRecord[]>(widget.queryKey, effectiveConfig, context.dashboardContext);
   const videos = videosRaw ?? [];
 
   const filteredVideos = searchQuery.trim()
@@ -637,12 +643,15 @@ function AiInsightWidget({ widget, context }: WidgetComponentProps) {
   );
 }
 
-function buildWidgetTable(widget: WidgetSchema, data: Array<Record<string, string | number>>, mode: "count" | "duration") {
+function buildWidgetTable(widget: WidgetSchema, data: Array<Record<string, string | number>>, mode: "count" | "duration", isExpanded = false) {
   if (widget.queryKey === "timeTrend") {
     const timeGroup = widget.config.timeGroup ?? "day";
+    // Truncate to 8 rows in the in-card preview; show every row when
+    // expanded so the user sees the complete time series.
+    const trendRows = isExpanded ? data : data.slice(0, 8);
     return {
       columns: [timeGroupLabel(timeGroup), "Uploaded", "Processed", "Published"],
-      rows: data.slice(0, 8).map((row) => [
+      rows: trendRows.map((row) => [
         String(row.label),
         formatMetricValue(Number(row[mode === "count" ? "uploaded" : "uploadedDuration"]), mode),
         formatMetricValue(Number(row[mode === "count" ? "processed" : "processedDuration"]), mode),

@@ -18,10 +18,10 @@ export type Persona = "client" | "admin" | "tech";
 // Lean widget set; minimal operational noise.
 // ---------------------------------------------------------------------------
 const clientWidgets: WidgetSchema[] = [
-  widget("kpi-published", "kpi", "Published Videos", "summary", 0, 0, 3, 2, { metric: "published" }),
-  widget("kpi-downloads", "kpi", "Downloads", "summary", 3, 0, 3, 2, { metric: "downloads" }),
-  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 6, 0, 3, 2, { metric: "publishRate" }),
-  widget("kpi-processing", "kpi", "Avg Processing", "summary", 9, 0, 3, 2, { metric: "avgProcessing" }),
+  widget("kpi-published", "kpi", "Published Videos", "summary", 0, 0, 2, 2, { metric: "published" }),
+  widget("kpi-downloads", "kpi", "Downloads", "summary", 2, 0, 2, 2, { metric: "downloads" }),
+  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 4, 0, 2, 2, { metric: "publishRate" }),
+  widget("kpi-processing", "kpi", "Avg Processing", "summary", 6, 0, 2, 2, { metric: "avgProcessing" }),
   widget("trend-chart", "line-chart", "Publishing Trend", "timeTrend", 0, 2, 8, 7, {
     metricMode: "count",
     timeGroup: "day",
@@ -89,10 +89,10 @@ const adminWidgets: WidgetSchema[] = [
 // TECH ADMIN — system health view. Quality, throughput, and anomalies.
 // ---------------------------------------------------------------------------
 const techWidgets: WidgetSchema[] = [
-  widget("kpi-uploaded", "kpi", "Uploaded Videos", "summary", 0, 0, 3, 2, { metric: "uploaded" }),
-  widget("kpi-processed", "kpi", "Processed Videos", "summary", 3, 0, 3, 2, { metric: "processed" }),
-  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 6, 0, 3, 2, { metric: "publishRate" }),
-  widget("kpi-processing", "kpi", "Avg Processing", "summary", 9, 0, 3, 2, { metric: "avgProcessing" }),
+  widget("kpi-uploaded", "kpi", "Uploaded Videos", "summary", 0, 0, 2, 2, { metric: "uploaded" }),
+  widget("kpi-processed", "kpi", "Processed Videos", "summary", 2, 0, 2, 2, { metric: "processed" }),
+  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 4, 0, 2, 2, { metric: "publishRate" }),
+  widget("kpi-processing", "kpi", "Avg Processing", "summary", 6, 0, 2, 2, { metric: "avgProcessing" }),
   widget("trend-chart", "line-chart", "Processing Trend", "timeTrend", 0, 2, 8, 7, {
     metricMode: "duration",
     timeGroup: "day",
@@ -193,21 +193,21 @@ const techComparisonWidgets: WidgetSchema[] = [
 ];
 
 export const clientDashboardDefinition: DashboardDefinition = {
-  id: "frammer-dashboard-v5-client",
+  id: "frammer-dashboard-v6-client",
   title: "Client View",
   widgets: clientWidgets,
   comparisonWidgets: clientComparisonWidgets
 };
 
 export const adminDashboardDefinition: DashboardDefinition = {
-  id: "frammer-dashboard-v5-admin",
+  id: "frammer-dashboard-v6-admin",
   title: "Admin View",
   widgets: adminWidgets,
   comparisonWidgets: adminComparisonWidgets
 };
 
 export const techDashboardDefinition: DashboardDefinition = {
-  id: "frammer-dashboard-v5-tech",
+  id: "frammer-dashboard-v6-tech",
   title: "Tech Admin View",
   widgets: techWidgets,
   comparisonWidgets: techComparisonWidgets

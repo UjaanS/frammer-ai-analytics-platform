@@ -94,7 +94,7 @@ export function applyNlqActions(actions: NlqAction[], handlers: ApplyHandlers): 
 // targets 6 cols (narrow panel). Mirrors organizeWidgets() in gridUtils.
 function defaultSpanForType(type: WidgetSchema["type"], mode: LayoutMode) {
   const compare = mode === "comparison";
-  if (type === "kpi") return { w: 3, h: 2, minW: 2, minH: 2 };
+  if (type === "kpi") return { w: 2, h: 2, minW: 2, minH: 2 };
   if (type === "table") return { w: compare ? 6 : 12, h: 7, minW: compare ? 6 : 6, minH: 5 };
   if (type === "ai-insight") return { w: 6, h: 4, minW: 3, minH: 3 };
   return { w: 6, h: compare ? 7 : 6, minW: 3, minH: 5 };

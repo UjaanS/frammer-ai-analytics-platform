@@ -113,8 +113,9 @@ export function organizeWidgets(widgets: WidgetSchema[], mode: LayoutMode = "das
     if (cursorX >= TOTAL_COLS) commitRow();
   }
 
-  // 1. KPIs — uniform sizing, packed greedily.
-  const kpiW = mode === "comparison" ? 3 : 3; // 4-per-row in dashboard, 2-per-row in compare
+  // 1. KPIs — uniform sizing at the smallest comfortable footprint, packed
+  // greedily: 6-per-row in dashboard (w=2/12), 2-per-row in compare (w=3/6).
+  const kpiW = mode === "comparison" ? 3 : 2;
   const kpiH = 2;
   for (const kpi of kpis) place(kpi, kpiW, kpiH);
   commitRow();
