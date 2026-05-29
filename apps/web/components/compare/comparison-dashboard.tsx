@@ -117,12 +117,8 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
             compareMode={comparison.state.compareMode}
             compareBy={comparison.state.compareBy}
             viewMode={comparison.state.viewMode}
-            syncFilters={comparison.state.syncFilters}
-            syncHover={comparison.state.syncHover}
             onCompareByChange={comparison.setCompareBy}
             onViewModeChange={comparison.setViewMode}
-            onSyncFiltersChange={comparison.setSyncFilters}
-            onSyncHoverChange={comparison.setSyncHover}
             onCloneLeftToRight={comparison.cloneLeftToRight}
             onSwapContexts={comparison.swapContexts}
             onReset={comparison.resetComparison}

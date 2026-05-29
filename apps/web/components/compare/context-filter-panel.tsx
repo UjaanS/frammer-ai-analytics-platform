@@ -196,7 +196,7 @@ function ModeToggle({
         className={cn(
           "rounded px-2.5 py-1 transition",
           !compareMode
-            ? "bg-white text-slate-900 shadow-sm dark:bg-[#2d3147] dark:text-white"
+            ? "bg-[#ef405b] text-white"
             : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
         )}
       >
@@ -208,7 +208,7 @@ function ModeToggle({
         className={cn(
           "inline-flex items-center gap-1 rounded px-2.5 py-1 transition",
           compareMode
-            ? "bg-white text-slate-900 shadow-sm dark:bg-[#2d3147] dark:text-white"
+            ? "bg-[#ef405b] text-white"
             : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
         )}
       >

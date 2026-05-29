@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, Copy, Crosshair, Layers2, RotateCcw } from "lucide-react";
+import { ArrowLeftRight, Copy, RotateCcw } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -10,16 +10,16 @@ import type { CompareBy, ComparisonViewMode } from "@/lib/widgets/types";
 // Compare-mode-only controls. The mode toggle (Single / Compare) lives in
 // the ContextFilterPanel bar now; this strip only renders when comparison
 // is active and exposes the compare-specific options.
+//
+// Sync filters / sync hover toggles were removed — compareBy already drives
+// filter / date sync between contexts, and hover-sync defaults to true and
+// works automatically in split view via the chart syncId path.
 export function ComparisonToolbar({
   compareMode,
   compareBy,
   viewMode,
-  syncFilters,
-  syncHover,
   onCompareByChange,
   onViewModeChange,
-  onSyncFiltersChange,
-  onSyncHoverChange,
   onCloneLeftToRight,
   onSwapContexts,
   onReset
@@ -27,12 +27,8 @@ export function ComparisonToolbar({
   compareMode: boolean;
   compareBy: CompareBy;
   viewMode: ComparisonViewMode;
-  syncFilters: boolean;
-  syncHover: boolean;
   onCompareByChange: (value: CompareBy) => void;
   onViewModeChange: (value: ComparisonViewMode) => void;
-  onSyncFiltersChange: (enabled: boolean) => void;
-  onSyncHoverChange: (enabled: boolean) => void;
   onCloneLeftToRight: () => void;
   onSwapContexts: () => void;
   onReset: () => void;
@@ -59,15 +55,6 @@ export function ComparisonToolbar({
         ))}
       </ControlGroup>
 
-      <Divider />
-
-      <SyncToggle active={syncFilters} icon={<Layers2 className="h-3 w-3" />} onClick={() => onSyncFiltersChange(!syncFilters)}>
-        Sync filters
-      </SyncToggle>
-      <SyncToggle active={syncHover} icon={<Crosshair className="h-3 w-3" />} onClick={() => onSyncHoverChange(!syncHover)}>
-        Sync hover
-      </SyncToggle>
-
       <div className="ml-auto flex items-center gap-1">
         <IconAction title="Apply context A to B" onClick={onCloneLeftToRight}>
           <Copy className="h-3.5 w-3.5" />
@@ -92,6 +79,9 @@ function ControlGroup({ label, children }: { label: string; children: ReactNode 
   );
 }
 
+// Active state matches the count/duration toggle in widget-controls.tsx —
+// solid #ef405b background, white text, consistent across every toggle in
+// the dashboard.
 function SegmentButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
     <button
@@ -100,28 +90,10 @@ function SegmentButton({ active, onClick, children }: { active: boolean; onClick
       className={cn(
         "rounded px-2 py-0.5 text-[11px] font-semibold capitalize transition",
         active
-          ? "bg-white text-slate-900 shadow-sm dark:bg-[#2d3147] dark:text-white"
+          ? "bg-[#ef405b] text-white"
           : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
       )}
     >
-      {children}
-    </button>
-  );
-}
-
-function SyncToggle({ active, icon, onClick, children }: { active: boolean; icon: ReactNode; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition",
-        active
-          ? "border-[#ef405b]/40 bg-[#ef405b]/10 text-[#d3455d] dark:text-rose-200"
-          : "border-slate-200 bg-white text-slate-500 hover:text-slate-700 dark:border-white/10 dark:bg-transparent dark:text-slate-400 dark:hover:text-slate-200"
-      )}
-    >
-      {icon}
       {children}
     </button>
   );
