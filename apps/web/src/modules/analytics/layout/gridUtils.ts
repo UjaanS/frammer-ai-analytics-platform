@@ -113,9 +113,11 @@ export function organizeWidgets(widgets: WidgetSchema[], mode: LayoutMode = "das
     if (cursorX >= TOTAL_COLS) commitRow();
   }
 
-  // 1. KPIs — uniform sizing at the smallest comfortable footprint, packed
-  // greedily: 6-per-row in dashboard (w=2/12), 2-per-row in compare (w=3/6).
-  const kpiW = mode === "comparison" ? 3 : 2;
+  // 1. KPIs — always sized at the absolute minimum (matches the minW=2
+  // floor from getWidgetGridSpan). Organize is the user's "pack
+  // everything as tightly as possible" action; KPIs go to smallest in
+  // every mode. Dashboard packs 6/row; compare panel packs 3/row.
+  const kpiW = 2;
   const kpiH = 2;
   for (const kpi of kpis) place(kpi, kpiW, kpiH);
   commitRow();

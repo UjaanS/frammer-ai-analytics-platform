@@ -128,10 +128,10 @@ const techWidgets: WidgetSchema[] = [
 // ---------------------------------------------------------------------------
 
 const clientComparisonWidgets: WidgetSchema[] = [
-  widget("kpi-published", "kpi", "Published Videos", "summary", 0, 0, 3, 2, { metric: "published" }),
-  widget("kpi-downloads", "kpi", "Downloads", "summary", 3, 0, 3, 2, { metric: "downloads" }),
-  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 0, 2, 3, 2, { metric: "publishRate" }),
-  widget("kpi-processing", "kpi", "Avg Processing", "summary", 3, 2, 3, 2, { metric: "avgProcessing" }),
+  widget("kpi-published", "kpi", "Published Videos", "summary", 0, 0, 2, 2, { metric: "published" }),
+  widget("kpi-downloads", "kpi", "Downloads", "summary", 2, 0, 2, 2, { metric: "downloads" }),
+  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 4, 0, 2, 2, { metric: "publishRate" }),
+  widget("kpi-processing", "kpi", "Avg Processing", "summary", 0, 2, 2, 2, { metric: "avgProcessing" }),
   widget("trend-chart", "line-chart", "Publishing Trend", "timeTrend", 0, 4, 6, 7, {
     metricMode: "count",
     timeGroup: "day",
@@ -149,12 +149,12 @@ const clientComparisonWidgets: WidgetSchema[] = [
 ];
 
 const adminComparisonWidgets: WidgetSchema[] = [
-  widget("kpi-uploaded", "kpi", "Uploaded", "summary", 0, 0, 3, 2, { metric: "uploaded" }),
-  widget("kpi-processed", "kpi", "Processed", "summary", 3, 0, 3, 2, { metric: "processed" }),
-  widget("kpi-published", "kpi", "Published", "summary", 0, 2, 3, 2, { metric: "published" }),
-  widget("kpi-downloads", "kpi", "Downloads", "summary", 3, 2, 3, 2, { metric: "downloads" }),
-  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 0, 4, 3, 2, { metric: "publishRate" }),
-  widget("kpi-processing", "kpi", "Avg Processing", "summary", 3, 4, 3, 2, { metric: "avgProcessing" }),
+  widget("kpi-uploaded", "kpi", "Uploaded", "summary", 0, 0, 2, 2, { metric: "uploaded" }),
+  widget("kpi-processed", "kpi", "Processed", "summary", 2, 0, 2, 2, { metric: "processed" }),
+  widget("kpi-published", "kpi", "Published", "summary", 4, 0, 2, 2, { metric: "published" }),
+  widget("kpi-downloads", "kpi", "Downloads", "summary", 0, 2, 2, 2, { metric: "downloads" }),
+  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 2, 2, 2, 2, { metric: "publishRate" }),
+  widget("kpi-processing", "kpi", "Avg Processing", "summary", 4, 2, 2, 2, { metric: "avgProcessing" }),
   widget("trend-chart", "line-chart", "Pipeline Trend", "timeTrend", 0, 6, 6, 7, {
     metricMode: "count",
     timeGroup: "day",
@@ -173,10 +173,10 @@ const adminComparisonWidgets: WidgetSchema[] = [
 ];
 
 const techComparisonWidgets: WidgetSchema[] = [
-  widget("kpi-uploaded", "kpi", "Uploaded", "summary", 0, 0, 3, 2, { metric: "uploaded" }),
-  widget("kpi-processed", "kpi", "Processed", "summary", 3, 0, 3, 2, { metric: "processed" }),
-  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 0, 2, 3, 2, { metric: "publishRate" }),
-  widget("kpi-processing", "kpi", "Avg Processing", "summary", 3, 2, 3, 2, { metric: "avgProcessing" }),
+  widget("kpi-uploaded", "kpi", "Uploaded", "summary", 0, 0, 2, 2, { metric: "uploaded" }),
+  widget("kpi-processed", "kpi", "Processed", "summary", 2, 0, 2, 2, { metric: "processed" }),
+  widget("kpi-publish-rate", "kpi", "Publish Rate", "summary", 4, 0, 2, 2, { metric: "publishRate" }),
+  widget("kpi-processing", "kpi", "Avg Processing", "summary", 0, 2, 2, 2, { metric: "avgProcessing" }),
   widget("trend-chart", "line-chart", "Processing Trend", "timeTrend", 0, 4, 6, 7, {
     metricMode: "duration",
     timeGroup: "day",
@@ -193,21 +193,21 @@ const techComparisonWidgets: WidgetSchema[] = [
 ];
 
 export const clientDashboardDefinition: DashboardDefinition = {
-  id: "frammer-dashboard-v6-client",
+  id: "frammer-dashboard-v7-client",
   title: "Client View",
   widgets: clientWidgets,
   comparisonWidgets: clientComparisonWidgets
 };
 
 export const adminDashboardDefinition: DashboardDefinition = {
-  id: "frammer-dashboard-v6-admin",
+  id: "frammer-dashboard-v7-admin",
   title: "Admin View",
   widgets: adminWidgets,
   comparisonWidgets: adminComparisonWidgets
 };
 
 export const techDashboardDefinition: DashboardDefinition = {
-  id: "frammer-dashboard-v6-tech",
+  id: "frammer-dashboard-v7-tech",
   title: "Tech Admin View",
   widgets: techWidgets,
   comparisonWidgets: techComparisonWidgets
