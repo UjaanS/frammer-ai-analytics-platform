@@ -123,27 +123,54 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
             onSwapContexts={comparison.swapContexts}
             onReset={comparison.resetComparison}
           />
-          <section className="grid items-stretch gap-3 transition-all duration-300 xl:grid-cols-[1fr_auto_1fr]">
-            <ContextFilterPanel
-              context={leftContext}
-              compact
-              onUpdateFilters={comparison.updateContextFilters}
-              onUpdateDateRange={comparison.updateContextDateRange}
-            />
-            <div className="flex items-center justify-center">
-              <span className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 shadow-sm dark:border-white/10 dark:bg-[#24283d] dark:text-slate-400">
-                VS
-              </span>
-            </div>
-            {rightContext ? (
+          {comparison.state.viewMode === "split" ? (
+            // Split view: dual side-by-side cards mirror the dual grid panels below.
+            <section className="grid items-stretch gap-3 transition-all duration-300 xl:grid-cols-[1fr_auto_1fr]">
               <ContextFilterPanel
-                context={rightContext}
+                context={leftContext}
                 compact
                 onUpdateFilters={comparison.updateContextFilters}
                 onUpdateDateRange={comparison.updateContextDateRange}
               />
-            ) : null}
-          </section>
+              <div className="flex items-center justify-center">
+                <span className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 shadow-sm dark:border-white/10 dark:bg-[#24283d] dark:text-slate-400">
+                  VS
+                </span>
+              </div>
+              {rightContext ? (
+                <ContextFilterPanel
+                  context={rightContext}
+                  compact
+                  onUpdateFilters={comparison.updateContextFilters}
+                  onUpdateDateRange={comparison.updateContextDateRange}
+                />
+              ) : null}
+            </section>
+          ) : (
+            // Overlay view: dashboard is single full-width below; render
+            // context A as the primary editor + context B as a compact
+            // secondary card so the section reads "two overlaid contexts"
+            // not "two split panels".
+            <section className="space-y-2 transition-all duration-300">
+              <ContextFilterPanel
+                context={leftContext}
+                compact
+                onUpdateFilters={comparison.updateContextFilters}
+                onUpdateDateRange={comparison.updateContextDateRange}
+              />
+              {rightContext ? (
+                <ContextFilterPanel
+                  context={rightContext}
+                  compact
+                  onUpdateFilters={comparison.updateContextFilters}
+                  onUpdateDateRange={comparison.updateContextDateRange}
+                />
+              ) : null}
+              <p className="px-1 text-[11px] text-slate-500 dark:text-slate-400">
+                Charts below layer <span className="font-semibold text-sky-600 dark:text-sky-300">{leftContext.label}</span> over <span className="font-semibold text-rose-600 dark:text-rose-300">{rightContext?.label}</span> on the same axes.
+              </p>
+            </section>
+          )}
         </>
       ) : (
         <ContextFilterPanel
