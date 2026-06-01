@@ -15,17 +15,26 @@ type Args = {
   context?: DashboardContext;
 };
 
-type Response<T> = { ok: true; data: T } | { ok: false; error: string };
+export type WidgetDataMeta = {
+  source?: "sql" | "mock";
+  availability?: "available" | "unavailable";
+  asOf?: string;
+  reason?: string;
+  fallbackReason?: string;
+  unavailableMetrics?: Record<string, string>;
+};
 
-async function fetchWidgetData<T>(args: Args): Promise<T> {
-  const response = await fetch("/api/mock/widget-data", {
+type Response<T> = { ok: true; data: T; meta?: WidgetDataMeta } | { ok: false; error: string };
+
+async function fetchWidgetData<T>(args: Args): Promise<{ data: T; meta?: WidgetDataMeta }> {
+  const response = await fetch("/api/analytics/widget-data", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(args)
   });
   const json = (await response.json()) as Response<T>;
   if (!json.ok) throw new Error(json.error);
-  return json.data;
+  return { data: json.data, meta: json.meta };
 }
 
 export function useWidgetData<T = unknown>(
@@ -36,7 +45,7 @@ export function useWidgetData<T = unknown>(
   // Passing null as queryKey skips the fetch (useful for conditional
   // comparison-context loads inside a widget).
   const key = queryKey ? JSON.stringify({ queryKey, config, context }) : null;
-  const { data, error, isLoading } = useSWR<T>(
+  const { data: result, error, isLoading } = useSWR<{ data: T; meta?: WidgetDataMeta }>(
     key,
     () => fetchWidgetData<T>({ queryKey: queryKey as WidgetQueryKey, config, context }),
     {
@@ -45,5 +54,5 @@ export function useWidgetData<T = unknown>(
       dedupingInterval: 30_000
     }
   );
-  return { data, error, isLoading };
+  return { data: result?.data, meta: result?.meta, error, isLoading };
 }

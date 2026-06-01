@@ -1,3 +1,5 @@
+"use client";
+
 import { AlertTriangle, Clock, TrendingDown } from "lucide-react";
 
 import { AnomalyBanner } from "@/components/analytics/anomaly-banner";
@@ -12,22 +14,27 @@ import { MetricCard } from "@/components/shell/metric-card";
 import { PageContainer } from "@/components/shell/page-container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { aggregateByDimension } from "@/lib/analytics/engine";
-import { videoRecords } from "@/lib/analytics/mock-data";
-
-const funnelSteps = [
-  { label: "Uploaded", value: 2842, conversion: 100, latency: "0 min" },
-  { label: "Processed", value: 2594, conversion: 91.3, latency: "18 min" },
-  { label: "Published", value: 1876, conversion: 72.3, latency: "42 min" },
-  { label: "Downloaded", value: 5216, conversion: 277.9, latency: "6 hr window" }
-];
-
-const bottlenecks = [
-  { title: "Processing queue saturation", description: "Bulk Upload jobs are adding 11 minutes to median processing latency.", impact: "High", tone: "warning" as const },
-  { title: "Publishing approval delay", description: "Draft to published movement is slowest for TikTok and Newsletter outputs.", impact: "Medium", tone: "warning" as const }
-];
+import { useSqlAnalyticsRecords } from "@/hooks/use-sql-analytics-records";
+import { useWidgetData } from "@/lib/widgets/use-widget-data";
 
 export default function PublishingFunnelPage() {
-  const lowChannels = aggregateByDimension(videoRecords, "channel", "published").slice(-4).reverse();
+  const { records } = useSqlAnalyticsRecords();
+  const { data: summary = {} } = useWidgetData<Record<string, number>>("summary", {});
+  const lowChannels = aggregateByDimension(records, "channel", "published").slice(-4).reverse();
+  const uploaded = summary.videosIngested ?? 0;
+  const processed = summary.processed ?? 0;
+  const published = summary.published ?? 0;
+  const processedRate = percent(processed, uploaded);
+  const publishedRate = percent(published, processed);
+  const funnelSteps = [
+    { label: "Uploaded", value: uploaded, conversion: 100, latency: "Ingested originals" },
+    { label: "Processed", value: processed, conversion: processedRate, latency: `${summary.processingTurnaround ?? 0} min avg` },
+    { label: "Published", value: published, conversion: publishedRate, latency: "Published snapshot rows" }
+  ];
+  const bottlenecks = [
+    { title: "Processing backlog", description: `${summary.processingBacklog ?? 0} original videos remain queued or in progress.`, impact: "Warehouse", tone: "warning" as const },
+    { title: "Service backlog", description: `${summary.serviceBacklog ?? 0} service requests remain queued or in progress.`, impact: "Warehouse", tone: "warning" as const }
+  ];
 
   return (
     <PageTransition>
@@ -38,10 +45,10 @@ export default function PublishingFunnelPage() {
         />
 
         <ResponsiveGrid minColumnWidth="sm">
-          <MetricCard title="Upload to Processed" value="91.3%" description="248 videos dropped" icon={TrendingDown} />
-          <MetricCard title="Processed to Published" value="72.3%" description="718 videos pending or failed" icon={AlertTriangle} />
-          <MetricCard title="Median Latency" value="42m" description="Upload to publish" icon={Clock} />
-          <MetricCard title="Downloads / Published" value="2.8x" description="Strong reuse rate" icon={TrendingDown} />
+          <MetricCard title="Upload to Processed" value={`${processedRate}%`} description={`${Math.max(0, uploaded - processed)} videos pending or failed`} icon={TrendingDown} />
+          <MetricCard title="Processed to Published" value={`${publishedRate}%`} description={`${Math.max(0, processed - published)} videos not published`} icon={AlertTriangle} />
+          <MetricCard title="Avg Processing" value={`${summary.processingTurnaround ?? 0}m`} description="Warehouse turnaround metric" icon={Clock} />
+          <MetricCard title="Downloads / Published" value="Unavailable" description="No trustworthy download source in snapshot" icon={TrendingDown} />
         </ResponsiveGrid>
 
         <AnomalyBanner alerts={bottlenecks} />
@@ -61,9 +68,9 @@ export default function PublishingFunnelPage() {
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-3">
             {[
-              ["Uploaded to Processed", "8.7% dropoff", "Mostly failed jobs and invalid URLs."],
-              ["Processed to Published", "27.7% dropoff", "Approval queue and draft backlog."],
-              ["Published to Downloaded", "Healthy", "Downloads are exceeding published volume."]
+              ["Uploaded to Processed", `${Math.max(0, 100 - processedRate)}% dropoff`, "Derived from warehouse processing status."],
+              ["Processed to Published", `${Math.max(0, 100 - publishedRate)}% dropoff`, "Derived from warehouse publish state."],
+              ["Published to Downloaded", "Unavailable", "The SQL snapshot has no trustworthy download totals."]
             ].map(([title, value, detail]) => (
               <div key={title} className="rounded-lg bg-muted/50 p-4">
                 <p className="text-sm font-semibold">{title}</p>
@@ -74,8 +81,12 @@ export default function PublishingFunnelPage() {
           </CardContent>
         </Card>
 
-        <MultiDimensionPanel />
+        <MultiDimensionPanel records={records} />
       </PageContainer>
     </PageTransition>
   );
+}
+
+function percent(numerator: number, denominator: number) {
+  return Math.round(numerator / Math.max(1, denominator) * 1000) / 10;
 }

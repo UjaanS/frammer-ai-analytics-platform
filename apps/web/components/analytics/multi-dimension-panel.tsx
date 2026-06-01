@@ -10,7 +10,7 @@ import { useAnalyticsFilters } from "@/hooks/use-analytics-filters";
 import { useMultiDimensionalAnalytics } from "@/hooks/use-multi-dimensional-analytics";
 import { dimensionLabels, metricLabels } from "@/lib/analytics/engine";
 import { dimensionOptions, metricOptions, videoRecords } from "@/lib/analytics/mock-data";
-import type { DimensionKey, MetricKey } from "@/lib/analytics/types";
+import type { DimensionKey, MetricKey, VideoRecord } from "@/lib/analytics/types";
 
 type DimensionTableRow = {
   dimension1: string;
@@ -30,9 +30,9 @@ const columns: ColumnDef<DimensionTableRow>[] = [
   { accessorKey: "count", header: "Records" }
 ];
 
-export function MultiDimensionPanel() {
+export function MultiDimensionPanel({ records = videoRecords }: { records?: VideoRecord[] }) {
   const { filters, setFilter } = useAnalyticsFilters();
-  const { rows, total } = useMultiDimensionalAnalytics(videoRecords, filters);
+  const { rows, total } = useMultiDimensionalAnalytics(records, filters);
   const chartRows = rows.slice(0, 8).map((row) => ({
     name: `${row.dimension1} / ${row.dimension2}`,
     value: row.value

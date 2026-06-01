@@ -60,8 +60,8 @@ export function AppHeader({ title, actions }: AppHeaderProps) {
           <PersonaSwitcher />
         </Suspense>
         <div className="hidden rounded-md bg-slate-100 px-4 py-2 text-right text-sm leading-tight text-slate-700 dark:bg-white/10 dark:text-slate-200 md:block">
-          <div className="font-semibold text-slate-500 dark:text-slate-300">AAA - Frammer AI</div>
-          <div className="font-bold text-slate-900 dark:text-white">Channel-Frammer AI</div>
+          <div className="font-semibold text-slate-500 dark:text-slate-300">Warehouse Analytics</div>
+          <div className="font-bold text-slate-900 dark:text-white">All accessible data</div>
         </div>
         <Button
           aria-label="Toggle theme"

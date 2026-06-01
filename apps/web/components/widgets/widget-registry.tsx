@@ -59,7 +59,7 @@ export function WidgetRenderer({ widget, context }: WidgetComponentProps) {
 
 function KpiWidget({ widget, context }: WidgetComponentProps) {
   const { isOpen, openKPI, closeKPI } = useKPIOverlay();
-  const { data: rawData } = useWidgetData<Record<string, number>>(widget.queryKey, widget.config, context.dashboardContext);
+  const { data: rawData, meta } = useWidgetData<Record<string, number>>(widget.queryKey, widget.config, context.dashboardContext);
   const { data: rawComparison } = useWidgetData<Record<string, number>>(
     context.comparisonContext ? widget.queryKey : null,
     widget.config,
@@ -73,12 +73,13 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
   const data = rawData ?? {};
   const comparisonData = rawComparison;
   const trendData = rawTrend ?? [];
-  const metric = widget.config.metric ?? "uploaded";
+  const metric = widget.config.metricId ?? widget.config.metric ?? "uploaded";
+  const unavailableReason = meta?.unavailableMetrics?.[metric];
   const rawValue = data[metric] ?? 0;
   const comparisonValue = comparisonData?.[metric];
   const delta = comparisonValue === undefined ? null : calculateDelta(rawValue, comparisonValue);
-  const value = metric.includes("Duration") || metric === "avgProcessing" ? formatMinutes(rawValue) : metric === "publishRate" ? `${rawValue}%` : Math.round(rawValue).toLocaleString();
-  const detail = getKpiDetail(metric, data);
+  const value = unavailableReason ? "Unavailable" : metric.includes("Duration") || metric === "avgProcessing" || metric === "processingTurnaround" ? formatMinutes(rawValue) : metric.includes("Rate") || metric === "publishRate" || metric === "metadataCompleteness" ? `${rawValue}%` : metric === "outputYield" ? rawValue.toFixed(2) : Math.round(rawValue).toLocaleString();
+  const detail = unavailableReason ?? getKpiDetail(metric, data);
   const trendKey = getTrendKey(metric);
   const comparisonSummary = delta ? `${delta.percent > 0 ? "+" : ""}${delta.percent}% vs comparison context` : undefined;
 
@@ -150,7 +151,7 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
           <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{widget.title}</h3>
           <div className="mt-1.5 text-xl font-black text-slate-900 dark:text-white">{value}</div>
           <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">{detail}</p>
-          {delta ? (
+          {delta && !unavailableReason ? (
             <div className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black ${delta.direction === "down" ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"}`}>
               {delta.direction === "up" ? "↑" : delta.direction === "down" ? "↓" : "→"} {delta.delta > 0 ? "+" : ""}
               {formatDeltaValue(delta.delta, metric)} · {delta.percent > 0 ? "+" : ""}

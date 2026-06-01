@@ -11,6 +11,12 @@ export type ReportFilterState = {
   channel: string;
   user: string;
   videoType: string;
+  language: string;
+  serviceType: string;
+  sourcePlatform: string;
+  publishPlatform: string;
+  status: string;
+  includeDeleted: boolean;
   dimension: string;
   dimensionFilter: string;
   published: string;
@@ -61,9 +67,11 @@ export type WidgetQueryKey =
 
 export type WidgetConfig = {
   metric?: string;
+  metricId?: string;
   metricMode?: MetricMode;
   timeGroup?: TimeGroup;
   dimension?: string;
+  dimensionIds?: string[];
   columns?: string[];
   rowsLimit?: number;
   showTable?: boolean;

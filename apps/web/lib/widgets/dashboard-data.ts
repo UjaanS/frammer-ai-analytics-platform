@@ -46,9 +46,10 @@ export function filterRecordsForContext(records: VideoRecord[], context?: Dashbo
   const { filters, dateRange } = context;
   return records.filter((record) => {
     const uploadedAt = record.uploadedAt;
-    if (uploadedAt < dateRange.start || uploadedAt > dateRange.end) return false;
-    if (!matchesValue(filters.company, "AAA - Frammer AI", record.company)) return false;
-    if (!matchesValue(filters.channel, "Channel-Frammer AI", record.channel)) return false;
+    if (dateRange.start && uploadedAt < dateRange.start) return false;
+    if (dateRange.end && uploadedAt > dateRange.end) return false;
+    if (!matchesValue(filters.company, "all", record.company)) return false;
+    if (!matchesValue(filters.channel, "all", record.channel)) return false;
     if (!matchesValue(filters.user, "all", record.user)) return false;
     if (!matchesValue(filters.videoType, "all", record.inputType)) return false;
     if (!matchesValue(filters.published, "all", record.publishedStatus)) return false;
@@ -220,7 +221,6 @@ function buildQualityHeatmap() {
 }
 
 function matchesValue(filterValue: string, allValue: string, recordValue: string) {
-  if (filterValue === "AAA - Frammer AI") return true;
   return filterValue === allValue || filterValue === recordValue;
 }
 

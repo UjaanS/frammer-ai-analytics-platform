@@ -48,7 +48,7 @@ export type NlqAction =
         type: "kpi" | "line-chart" | "bar-chart" | "pie-chart" | "table" | "heatmap" | "ai-insight";
         queryKey: "summary" | "timeTrend" | "channelPerformance" | "platformDistribution" | "videoList" | "qualityHeatmap" | "aiInsight";
         title: string;
-        config?: { metric?: string; dimension?: string; metricMode?: "count" | "duration"; timeGroup?: "day" | "month" | "year"; description?: string };
+        config?: { metric?: string; metricId?: string; dimension?: string; dimensionIds?: string[]; metricMode?: "count" | "duration"; timeGroup?: "day" | "month" | "year"; description?: string };
       };
     }
   | {
@@ -57,7 +57,7 @@ export type NlqAction =
     }
   | {
       name: "update_widget_config";
-      input: { widgetId: string; config: { metric?: string; dimension?: string; metricMode?: "count" | "duration"; timeGroup?: "day" | "month" | "year"; description?: string } };
+      input: { widgetId: string; config: { metric?: string; metricId?: string; dimension?: string; dimensionIds?: string[]; metricMode?: "count" | "duration"; timeGroup?: "day" | "month" | "year"; description?: string } };
     }
   | {
       name: "reset_dashboard";

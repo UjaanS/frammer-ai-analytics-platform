@@ -1,3 +1,5 @@
+"use client";
+
 import { AlertTriangle, BadgeCheck, Bug, Link2Off } from "lucide-react";
 
 import { AnomalyBanner } from "@/components/analytics/anomaly-banner";
@@ -13,12 +15,31 @@ import { MetricCard } from "@/components/shell/metric-card";
 import { PageContainer } from "@/components/shell/page-container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { aggregateByDimension, calculateQualityScore } from "@/lib/analytics/engine";
-import { anomalyAlerts, trendData, videoRecords } from "@/lib/analytics/mock-data";
+import { useSqlAnalyticsRecords } from "@/hooks/use-sql-analytics-records";
+import { useWidgetData } from "@/lib/widgets/use-widget-data";
 
 export default function DataQualityPage() {
-  const qualityScore = calculateQualityScore(videoRecords);
-  const issueMix = aggregateByDimension(videoRecords, "qualityFlag", "uploaded").filter((item) => item.name !== "Clean");
-  const issueChannels = aggregateByDimension(videoRecords.filter((record) => record.qualityFlag !== "Clean"), "channel", "qualityIssues");
+  const { records } = useSqlAnalyticsRecords();
+  const qualityScore = calculateQualityScore(records);
+  const issueMix = aggregateByDimension(records, "qualityFlag", "uploaded").filter((item) => item.name !== "Clean");
+  const issueChannels = aggregateByDimension(records.filter((record) => record.qualityFlag !== "Clean"), "channel", "qualityIssues");
+  const { data: trendRows = [] } = useWidgetData<Array<Record<string, string | number>>>("timeTrend", { timeGroup: "month" });
+  const trendData = trendRows.map((row) => ({
+    date: String(row.label ?? ""),
+    uploads: Number(row.uploaded ?? 0),
+    processed: Number(row.processed ?? 0),
+    published: Number(row.published ?? 0),
+    downloads: 0,
+    duration: Number(row.uploadedDuration ?? 0),
+    previous: 0
+  }));
+  const issueCount = (name: string) => issueMix.find((item) => item.name === name)?.value ?? 0;
+  const anomalyAlerts = issueMix.slice(0, 3).map((issue) => ({
+    title: issue.name,
+    description: `${issue.value} warehouse video rows currently carry this quality flag.`,
+    impact: "Warehouse",
+    tone: "warning" as const
+  }));
 
   return (
     <PageTransition>
@@ -30,9 +51,9 @@ export default function DataQualityPage() {
 
         <ResponsiveGrid minColumnWidth="sm">
           <MetricCard title="Quality Score" value={`${qualityScore}%`} description="Weighted record health" icon={BadgeCheck} />
-          <MetricCard title="Missing Fields" value="24" description="Metadata and language gaps" icon={AlertTriangle} />
-          <MetricCard title="Duplicate IDs" value="18" description="Source ID conflicts" icon={Bug} />
-          <MetricCard title="Invalid URLs" value="11" description="Source links requiring repair" icon={Link2Off} />
+          <MetricCard title="Missing Fields" value={issueCount("Missing metadata").toLocaleString()} description="Metadata and language gaps" icon={AlertTriangle} />
+          <MetricCard title="Unknown Mapping" value={issueCount("Unknown mapping").toLocaleString()} description="Undocumented source status values" icon={Bug} />
+          <MetricCard title="Invalid URLs" value={issueCount("Invalid URL").toLocaleString()} description="Source links requiring repair" icon={Link2Off} />
         </ResponsiveGrid>
 
         <AnomalyBanner alerts={anomalyAlerts} />
@@ -45,7 +66,7 @@ export default function DataQualityPage() {
             <HorizontalBarChart data={issueChannels} />
           </ChartFrame>
           <ChartFrame title="Quality Trend Monitoring" description="Quality score proxy across the active period.">
-            <UnifiedTrendChart data={trendData.map((point) => ({ ...point, uploads: 90 + (point.published % 8), processed: 92, published: 88 }))} comparison={false} />
+            <UnifiedTrendChart data={trendData} comparison={false} />
           </ChartFrame>
           <Card className="shadow-sm">
             <CardHeader>
@@ -66,7 +87,7 @@ export default function DataQualityPage() {
           </Card>
         </ResponsiveGrid>
 
-        <MultiDimensionPanel />
+        <MultiDimensionPanel records={records} />
       </PageContainer>
     </PageTransition>
   );

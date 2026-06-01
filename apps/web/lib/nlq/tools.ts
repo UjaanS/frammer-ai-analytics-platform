@@ -6,18 +6,8 @@
 
 import type Groq from "groq-sdk";
 
-import {
-  billableStatuses,
-  channels,
-  companies,
-  inputTypes,
-  outputTypes,
-  platforms,
-  publishedStatuses,
-  qualityFlags,
-  users
-} from "@/lib/analytics/mock-data";
 import type { NlqAction } from "./types";
+import { semanticDimensions, semanticMetrics } from "@/lib/analytics/semantic-catalog";
 
 const WIDGET_TYPES = ["kpi", "line-chart", "bar-chart", "pie-chart", "table", "heatmap", "ai-insight"] as const;
 const QUERY_KEYS = ["summary", "timeTrend", "channelPerformance", "platformDistribution", "videoList", "qualityHeatmap", "aiInsight"] as const;
@@ -26,25 +16,29 @@ const VIEW_MODES = ["split", "overlay"] as const;
 const CONTEXT_IDS = ["context-a", "context-b"] as const;
 const METRIC_MODES = ["count", "duration"] as const;
 const TIME_GROUPS = ["day", "month", "year"] as const;
+const SEMANTIC_METRICS = semanticMetrics.map((metric) => metric.id);
 
 // Used both in the tool descriptions and in the validation step.
 export const allowedValues = {
-  companies: ["AAA - Frammer AI", ...companies],
-  channels: ["Channel-Frammer AI", ...channels],
-  users: ["all", ...users],
-  videoTypes: ["all", ...inputTypes],
-  outputTypes: ["all", ...outputTypes],
-  publishedStatuses: ["all", ...publishedStatuses],
-  billableStatuses: ["all", ...billableStatuses],
-  platforms,
-  qualityFlags,
+  companies: ["all"],
+  channels: ["all"],
+  users: ["all"],
+  languages: ["all"],
+  videoTypes: ["all"],
+  serviceTypes: ["all"],
+  sourcePlatforms: ["all"],
+  publishPlatforms: ["all"],
+  statuses: ["all"],
+  publishedStatuses: ["all", "Published", "Scheduled", "Draft", "Failed"],
   widgetTypes: WIDGET_TYPES,
   queryKeys: QUERY_KEYS,
   personas: PERSONAS,
   viewModes: VIEW_MODES,
   contextIds: CONTEXT_IDS,
   metricModes: METRIC_MODES,
-  timeGroups: TIME_GROUPS
+  timeGroups: TIME_GROUPS,
+  semanticMetrics: SEMANTIC_METRICS,
+  semanticDimensions
 } as const;
 
 // Internal shape — { name, description, parameters } per tool. Wrapped into
@@ -56,7 +50,7 @@ const rawTools: RawTool[] = [
     name: "update_filters",
     description:
       "Set one or more filter values on a comparison context. Pass only the fields you want to change. " +
-      "Use 'all' (or 'AAA - Frammer AI' for company / 'Channel-Frammer AI' for channel) as the wildcard 'show everything' sentinel.",
+      "Use 'all' as the wildcard 'show everything' sentinel.",
     parameters: {
       type: "object",
       properties: {
@@ -67,7 +61,12 @@ const rawTools: RawTool[] = [
             company: { type: "string" },
             channel: { type: "string" },
             user: { type: "string" },
+            language: { type: "string" },
             videoType: { type: "string" },
+            serviceType: { type: "string" },
+            sourcePlatform: { type: "string" },
+            publishPlatform: { type: "string" },
+            status: { type: "string" },
             published: { type: "string" },
             comparison: { type: "string", enum: ["previous-period", "previous-month", "previous-year", "none"] },
             dimension: { type: "string", enum: ["none", "channel", "platform", "user", "team", "videoType"] },
@@ -132,7 +131,9 @@ const rawTools: RawTool[] = [
           type: "object",
           properties: {
             metric: { type: "string", description: "For kpi widgets: uploaded | processed | published | downloads | publishRate | avgProcessing" },
+            metricId: { type: "string", enum: [...SEMANTIC_METRICS], description: "Canonical semantic metric id. Prefer this for SQL-backed metrics." },
             dimension: { type: "string" },
+            dimensionIds: { type: "array", items: { type: "string", enum: [...semanticDimensions] } },
             metricMode: { type: "string", enum: [...METRIC_MODES] },
             timeGroup: { type: "string", enum: [...TIME_GROUPS] },
             description: { type: "string" }
@@ -162,7 +163,9 @@ const rawTools: RawTool[] = [
           type: "object",
           properties: {
             metric: { type: "string" },
+            metricId: { type: "string", enum: [...SEMANTIC_METRICS] },
             dimension: { type: "string" },
+            dimensionIds: { type: "array", items: { type: "string", enum: [...semanticDimensions] } },
             metricMode: { type: "string", enum: [...METRIC_MODES] },
             timeGroup: { type: "string", enum: [...TIME_GROUPS] },
             description: { type: "string" }
@@ -196,25 +199,45 @@ export const tools: Groq.Chat.ChatCompletionTool[] = rawTools.map((tool) => ({
 // Server-side validation. Runs on every action the model returns; rejects
 // the whole response if anything is off. Returns null on success or an error
 // message on failure.
-export function validateActions(actions: NlqAction[], availableWidgetIds: string[]): string | null {
+export function validateActions(
+  actions: NlqAction[],
+  availableWidgetIds: string[],
+  warehouseFilters?: Record<string, string[]>
+): string | null {
+  const values = allowedValuesForWarehouse(warehouseFilters);
   for (const action of actions) {
     switch (action.name) {
       case "update_filters": {
         const { contextId, filters } = action.input;
         if (!CONTEXT_IDS.includes(contextId)) return `Unknown contextId: ${contextId}`;
-        if (filters.company && !allowedValues.companies.includes(filters.company)) {
+        if (filters.company && !values.companies.includes(filters.company)) {
           return `Unknown company: ${filters.company}`;
         }
-        if (filters.channel && !allowedValues.channels.includes(filters.channel)) {
+        if (filters.channel && !values.channels.includes(filters.channel)) {
           return `Unknown channel: ${filters.channel}`;
         }
-        if (filters.user && !allowedValues.users.includes(filters.user)) {
+        if (filters.user && !values.users.includes(filters.user)) {
           return `Unknown user: ${filters.user}`;
         }
-        if (filters.videoType && !allowedValues.videoTypes.includes(filters.videoType)) {
+        if (filters.language && !values.languages.includes(filters.language)) {
+          return `Unknown language: ${filters.language}`;
+        }
+        if (filters.videoType && !values.videoTypes.includes(filters.videoType)) {
           return `Unknown video type: ${filters.videoType}`;
         }
-        if (filters.published && !allowedValues.publishedStatuses.includes(filters.published)) {
+        if (filters.serviceType && !values.serviceTypes.includes(filters.serviceType)) {
+          return `Unknown service type: ${filters.serviceType}`;
+        }
+        if (filters.sourcePlatform && !values.sourcePlatforms.includes(filters.sourcePlatform)) {
+          return `Unknown source platform: ${filters.sourcePlatform}`;
+        }
+        if (filters.publishPlatform && !values.publishPlatforms.includes(filters.publishPlatform)) {
+          return `Unknown publish platform: ${filters.publishPlatform}`;
+        }
+        if (filters.status && !values.statuses.includes(filters.status)) {
+          return `Unknown status: ${filters.status}`;
+        }
+        if (filters.published && !(allowedValues.publishedStatuses as readonly string[]).includes(filters.published)) {
           return `Unknown publish state: ${filters.published}`;
         }
         break;
@@ -237,15 +260,21 @@ export function validateActions(actions: NlqAction[], availableWidgetIds: string
         break;
       }
       case "add_widget": {
-        const { type, queryKey } = action.input;
+        const { type, queryKey, config } = action.input;
         if (!WIDGET_TYPES.includes(type)) return `Unknown widget type: ${type}`;
         if (!QUERY_KEYS.includes(queryKey)) return `Unknown queryKey: ${queryKey}`;
+        const configError = validateSemanticConfig(config);
+        if (configError) return configError;
         break;
       }
       case "remove_widget":
       case "update_widget_config": {
         if (!availableWidgetIds.includes(action.input.widgetId)) {
           return `Unknown widgetId: ${action.input.widgetId}`;
+        }
+        if (action.name === "update_widget_config") {
+          const configError = validateSemanticConfig(action.input.config);
+          if (configError) return configError;
         }
         break;
       }
@@ -256,4 +285,30 @@ export function validateActions(actions: NlqAction[], availableWidgetIds: string
     }
   }
   return null;
+}
+
+export function allowedValuesForWarehouse(filters?: Record<string, string[]>) {
+  const withAll = (values?: string[]) => ["all", ...Array.from(new Set(values ?? [])).filter((value) => value !== "all")];
+  return {
+    ...allowedValues,
+    companies: withAll(filters?.companies),
+    channels: withAll(filters?.channels),
+    users: withAll(filters?.users),
+    languages: withAll(filters?.languages),
+    videoTypes: withAll(filters?.videoTypes),
+    serviceTypes: withAll(filters?.serviceTypes),
+    sourcePlatforms: withAll(filters?.sourcePlatforms),
+    publishPlatforms: withAll(filters?.publishPlatforms),
+    statuses: withAll([...(filters?.videoStatuses ?? []), ...(filters?.serviceStatuses ?? [])])
+  };
+}
+
+function validateSemanticConfig(config?: { metricId?: string; dimensionIds?: string[] }): string | null {
+  if (config?.metricId && !SEMANTIC_METRICS.includes(config.metricId as (typeof SEMANTIC_METRICS)[number])) {
+    return `Unknown semantic metric: ${config.metricId}`;
+  }
+  const unknownDimension = config?.dimensionIds?.find(
+    (dimension) => !semanticDimensions.includes(dimension as (typeof semanticDimensions)[number])
+  );
+  return unknownDimension ? `Unknown semantic dimension: ${unknownDimension}` : null;
 }

@@ -2,10 +2,16 @@ import type { DashboardContext, DashboardState, ReportFilterState } from "@/lib/
 
 export const defaultReportFilters: ReportFilterState = {
   comparison: "previous-period",
-  company: "AAA - Frammer AI",
-  channel: "Channel-Frammer AI",
+  company: "all",
+  channel: "all",
   user: "all",
   videoType: "all",
+  language: "all",
+  serviceType: "all",
+  sourcePlatform: "all",
+  publishPlatform: "all",
+  status: "all",
+  includeDeleted: true,
   dimension: "none",
   dimensionFilter: "none",
   published: "all"
@@ -15,8 +21,8 @@ export const defaultContextA: DashboardContext = {
   id: "context-a",
   label: "Context A",
   dateRange: {
-    start: "2026-05-01",
-    end: "2026-05-31"
+    start: "",
+    end: ""
   },
   filters: defaultReportFilters,
   dimensions: {}
@@ -26,8 +32,8 @@ export const defaultContextB: DashboardContext = {
   id: "context-b",
   label: "Context B",
   dateRange: {
-    start: "2026-05-01",
-    end: "2026-05-15"
+    start: "",
+    end: ""
   },
   filters: {
     ...defaultReportFilters,
@@ -53,7 +59,8 @@ export const defaultDashboardState: DashboardState = {
 export function ensureContextPair(state: DashboardState): DashboardState {
   const normalizedState = {
     ...state,
-    syncHover: state.syncHover ?? defaultDashboardState.syncHover
+    syncHover: state.syncHover ?? defaultDashboardState.syncHover,
+    contexts: state.contexts.map(normalizeContext)
   };
 
   if (!normalizedState.compareMode) {
@@ -66,5 +73,13 @@ export function ensureContextPair(state: DashboardState): DashboardState {
   return {
     ...normalizedState,
     contexts: [normalizedState.contexts[0] ?? defaultContextA, normalizedState.contexts[1] ?? defaultContextB]
+  };
+}
+
+function normalizeContext(context: DashboardContext): DashboardContext {
+  return {
+    ...context,
+    filters: { ...defaultReportFilters, ...context.filters },
+    dateRange: context.dateRange ?? { start: "", end: "" }
   };
 }

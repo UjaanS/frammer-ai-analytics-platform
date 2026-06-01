@@ -44,6 +44,7 @@ export async function POST(request: Request): Promise<NextResponse<NlqResponse>>
   }
 
   const client = new Groq({ apiKey });
+  const warehouseFilters = await loadWarehouseFilters();
 
   // Llama 3.3 70B is good at tool calling but occasionally returns a
   // non-standard `<function=name{...}` template instead of proper
@@ -55,7 +56,7 @@ export async function POST(request: Request): Promise<NextResponse<NlqResponse>>
       max_tokens: MAX_TOKENS,
       temperature: 0,
       messages: [
-        { role: "system", content: buildSystemPrompt(state) },
+        { role: "system", content: buildSystemPrompt(state, warehouseFilters) },
         { role: "user", content: query.trim() }
       ],
       tools,
@@ -112,7 +113,7 @@ export async function POST(request: Request): Promise<NextResponse<NlqResponse>>
     });
   }
 
-  const validationError = validateActions(actions, state.widgetIds);
+  const validationError = validateActions(actions, state.widgetIds, warehouseFilters);
   if (validationError) {
     return NextResponse.json(
       { ok: false, error: `Validation failed: ${validationError}` },
@@ -125,4 +126,16 @@ export async function POST(request: Request): Promise<NextResponse<NlqResponse>>
     summary: summary || `Applied ${actions.length} change${actions.length === 1 ? "" : "s"}.`,
     actions
   });
+}
+
+async function loadWarehouseFilters(): Promise<Record<string, string[]> | undefined> {
+  const apiBaseUrl = process.env.ANALYTICS_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+  try {
+    const response = await fetch(`${apiBaseUrl}/analytics/warehouse/catalog`, { cache: "no-store" });
+    if (!response.ok) return undefined;
+    const payload = await response.json() as { data?: { filters?: Record<string, string[]> } };
+    return payload.data?.filters;
+  } catch {
+    return undefined;
+  }
 }

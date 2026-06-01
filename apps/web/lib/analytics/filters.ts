@@ -1,7 +1,7 @@
 import type { DimensionKey, FilterState, MetricKey } from "./types";
 
 export const defaultFilters: FilterState = {
-  dateRange: "last-30-days",
+  dateRange: "all",
   comparisonRange: "previous-period",
   company: "all",
   channel: "all",
@@ -19,6 +19,7 @@ export const defaultFilters: FilterState = {
 };
 
 export const dateRangeOptions = [
+  { value: "all", label: "All dates" },
   { value: "last-7-days", label: "Last 7 days" },
   { value: "last-30-days", label: "Last 30 days" },
   { value: "quarter-to-date", label: "Quarter to date" },

@@ -1,13 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { channels, videoRecords } from "@/lib/analytics/mock-data";
+import { videoRecords } from "@/lib/analytics/mock-data";
+import type { VideoRecord } from "@/lib/analytics/types";
 
-export function ChannelDrilldown() {
-  const [selectedChannel, setSelectedChannel] = useState(channels[0]);
-  const records = videoRecords.filter((record) => record.channel === selectedChannel);
+export function ChannelDrilldown({ records: sourceRecords = videoRecords }: { records?: VideoRecord[] }) {
+  const channels = Array.from(new Set(sourceRecords.map((record) => record.channel)));
+  const [selectedChannel, setSelectedChannel] = useState(channels[0] ?? "");
+
+  useEffect(() => {
+    if (!channels.includes(selectedChannel)) {
+      setSelectedChannel(channels[0] ?? "");
+    }
+  }, [channels, selectedChannel]);
+
+  const records = sourceRecords.filter((record) => record.channel === selectedChannel);
   const published = records.filter((record) => record.publishedStatus === "Published").length;
   const downloads = records.reduce((sum, record) => sum + record.downloads, 0);
   const latency = Math.round(

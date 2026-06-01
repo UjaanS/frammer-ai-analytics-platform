@@ -1,13 +1,9 @@
-import { MultiDimensionPanel } from "@/components/analytics/multi-dimension-panel";
-import { Search } from "lucide-react";
+"use client";
 
-import { EmptyState } from "@/components/feedback/empty-state";
+import { WarehouseExplorer } from "@/components/analytics/warehouse-explorer";
 import { PageHeader } from "@/components/analytics/page-header";
 import { PageTransition } from "@/components/analytics/page-transition";
 import { PageContainer } from "@/components/shell/page-container";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { VideoExplorerTable } from "@/components/video/video-explorer-table";
-import { videoRecords } from "@/lib/analytics/mock-data";
 
 export default function VideoExplorerPage() {
   return (
@@ -17,25 +13,7 @@ export default function VideoExplorerPage() {
           title="Video Explorer"
           description="Search, sort, filter, export, and inspect every source video and generated output record."
         />
-
-        {videoRecords.length ? (
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>Advanced Searchable Table</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <VideoExplorerTable data={videoRecords} />
-            </CardContent>
-          </Card>
-        ) : (
-          <EmptyState
-            icon={Search}
-            title="No videos found"
-            description="Adjust filters or broaden the selected date range to discover video records."
-          />
-        )}
-
-        <MultiDimensionPanel />
+        <WarehouseExplorer />
       </PageContainer>
     </PageTransition>
   );

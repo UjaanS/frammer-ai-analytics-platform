@@ -7,7 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { channels, companies, inputTypes, publishedStatuses, users } from "@/lib/analytics/mock-data";
+import { useWarehouseCatalog } from "@/hooks/use-warehouse-catalog";
+import { defaultReportFilters } from "@/lib/compare/defaults";
 import { cn } from "@/lib/utils";
 import type { DashboardContext, DateRange, ReportFilterState } from "@/lib/widgets/types";
 
@@ -41,10 +42,13 @@ export function ContextFilterPanel({
   onUpdateDateRange: (contextId: string, dateRange: DateRange) => void;
   onCompareModeChange?: (enabled: boolean) => void;
 }) {
+  const { catalog } = useWarehouseCatalog();
+  const filterOptions = buildWarehouseFilterOptions(catalog?.filters);
   if (compact) {
     return (
       <ComparisonContextCard
         context={context}
+        filterOptions={filterOptions}
         onUpdateFilters={onUpdateFilters}
         onUpdateDateRange={onUpdateDateRange}
       />
@@ -54,6 +58,7 @@ export function ContextFilterPanel({
   return (
     <StandardContextBar
       context={context}
+      filterOptions={filterOptions}
       compareMode={compareMode}
       onUpdateFilters={onUpdateFilters}
       onUpdateDateRange={onUpdateDateRange}
@@ -67,12 +72,14 @@ export function ContextFilterPanel({
 // title, no helper paragraph — the chip strip below carries active context.
 function StandardContextBar({
   context,
+  filterOptions,
   compareMode,
   onUpdateFilters,
   onUpdateDateRange,
   onCompareModeChange
 }: {
   context: DashboardContext;
+  filterOptions: WarehouseFilterOptions;
   compareMode: boolean;
   onUpdateFilters: (contextId: string, filters: Partial<ReportFilterState>) => void;
   onUpdateDateRange: (contextId: string, dateRange: DateRange) => void;
@@ -108,7 +115,7 @@ function StandardContextBar({
     setDraftFilters(nextFilters);
   }
 
-  const chips = buildFilterChips(context);
+  const chips = buildFilterChips(context, filterOptions);
 
   return (
     <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#24283d]/95">
@@ -116,8 +123,8 @@ function StandardContextBar({
         <div className="flex flex-wrap items-center gap-2">
           {/* Core filters — inline, compact */}
           <InlineDateRange value={draftDateRange} onChange={setDraftDateRange} />
-          <InlinePill label="Company" value={draftFilters.company} options={companyOptions} onChange={(value) => updateFilter("company", value)} />
-          <InlinePill label="Channel" value={draftFilters.channel} options={channelOptions} onChange={(value) => updateFilter("channel", value)} />
+          <InlinePill label="Company" value={draftFilters.company} options={filterOptions.company} onChange={(value) => updateFilter("company", value)} />
+          <InlinePill label="Channel" value={draftFilters.channel} options={filterOptions.channel} onChange={(value) => updateFilter("channel", value)} />
           <InlinePill label="Comparison" value={draftFilters.comparison} options={comparisonOptions} onChange={(value) => updateFilter("comparison", value)} />
 
           {/* Right-side: mode toggle + advanced + apply */}
@@ -140,6 +147,7 @@ function StandardContextBar({
                 title="Advanced Filters"
                 description="Users, content type, segmentation, and publish state."
                 context={context}
+                filterOptions={filterOptions}
                 initialFilters={draftFilters}
                 initialDateRange={draftDateRange}
                 includePrimary={false}
@@ -225,15 +233,17 @@ function shallowFiltersEqual(a: ReportFilterState, b: ReportFilterState): boolea
 
 function ComparisonContextCard({
   context,
+  filterOptions,
   onUpdateFilters,
   onUpdateDateRange
 }: {
   context: DashboardContext;
+  filterOptions: WarehouseFilterOptions;
   onUpdateFilters: (contextId: string, filters: Partial<ReportFilterState>) => void;
   onUpdateDateRange: (contextId: string, dateRange: DateRange) => void;
 }) {
   const accent = contextAccent[context.id] ?? contextAccent["context-a"];
-  const chips = buildFilterChips(context).slice(0, 4);
+  const chips = buildFilterChips(context, filterOptions).slice(0, 4);
 
   return (
     <Card className={cn("overflow-hidden border border-slate-200 dark:border-white/10 border-t-2 bg-white dark:bg-[#24283d]/95 shadow-xl transition-all duration-300 hover:border-slate-300 dark:hover:border-white/20", accent.border, accent.glow)}>
@@ -244,7 +254,7 @@ function ComparisonContextCard({
               {context.label}
             </div>
             <h2 className="mt-3 truncate text-xl font-black text-slate-900 dark:text-slate-100">{formatDateRangeLabel(context.dateRange)}</h2>
-            <p className="mt-1 truncate text-sm font-semibold text-slate-500 dark:text-slate-400">{context.filters.channel} · {labelFromValue(context.filters.user, userOptions)}</p>
+            <p className="mt-1 truncate text-sm font-semibold text-slate-500 dark:text-slate-400">{labelFromValue(context.filters.channel, filterOptions.channel)} · {labelFromValue(context.filters.user, filterOptions.user)}</p>
           </div>
 
           <Sheet>
@@ -258,6 +268,7 @@ function ComparisonContextCard({
               title={`Edit ${context.label}`}
               description="Tune this side of the comparison. Changes only affect this context unless sync is enabled."
               context={context}
+              filterOptions={filterOptions}
               initialFilters={context.filters}
               initialDateRange={context.dateRange}
               includePrimary
@@ -283,6 +294,7 @@ function FilterDrawer({
   title,
   description,
   context,
+  filterOptions,
   initialFilters,
   initialDateRange,
   includePrimary,
@@ -291,6 +303,7 @@ function FilterDrawer({
   title: string;
   description: string;
   context: DashboardContext;
+  filterOptions: WarehouseFilterOptions;
   initialFilters: ReportFilterState;
   initialDateRange: DateRange;
   includePrimary: boolean;
@@ -321,16 +334,25 @@ function FilterDrawer({
             <div className="sm:col-span-2">
               <CompactDateRange value={draftDateRange} onChange={setDraftDateRange} />
             </div>
-            <FilterSelect label="Company" value={draftFilters.company} options={companyOptions} onChange={(value) => updateFilter("company", value)} />
-            <FilterSelect label="Channel" value={draftFilters.channel} options={channelOptions} onChange={(value) => updateFilter("channel", value)} />
+            <FilterSelect label="Company" value={draftFilters.company} options={filterOptions.company} onChange={(value) => updateFilter("company", value)} />
+            <FilterSelect label="Channel" value={draftFilters.channel} options={filterOptions.channel} onChange={(value) => updateFilter("channel", value)} />
             <FilterSelect label="Comparison" value={draftFilters.comparison} options={comparisonOptions} onChange={(value) => updateFilter("comparison", value)} />
           </DrawerSection>
         ) : null}
 
         <DrawerSection title="People & Content">
-          <FilterSelect label="Users" value={draftFilters.user} options={userOptions} onChange={(value) => updateFilter("user", value)} />
-          <FilterSelect label="Video Type" value={draftFilters.videoType} options={videoTypeOptions} onChange={(value) => updateFilter("videoType", value)} />
+          <FilterSelect label="User" value={draftFilters.user} options={filterOptions.user} onChange={(value) => updateFilter("user", value)} />
+          <FilterSelect label="Language" value={draftFilters.language} options={filterOptions.language} onChange={(value) => updateFilter("language", value)} />
+          <FilterSelect label="Video Type" value={draftFilters.videoType} options={filterOptions.videoType} onChange={(value) => updateFilter("videoType", value)} />
+          <FilterSelect label="Service Type" value={draftFilters.serviceType} options={filterOptions.serviceType} onChange={(value) => updateFilter("serviceType", value)} />
+          <FilterSelect label="Source Platform" value={draftFilters.sourcePlatform} options={filterOptions.sourcePlatform} onChange={(value) => updateFilter("sourcePlatform", value)} />
+          <FilterSelect label="Publish Platform" value={draftFilters.publishPlatform} options={filterOptions.publishPlatform} onChange={(value) => updateFilter("publishPlatform", value)} />
+          <FilterSelect label="Processing Status" value={draftFilters.status} options={filterOptions.status} onChange={(value) => updateFilter("status", value)} />
           <FilterSelect label="Published State" value={draftFilters.published} options={publishedOptions} onChange={(value) => updateFilter("published", value)} />
+          <label className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
+            <input type="checkbox" checked={draftFilters.includeDeleted} onChange={(event) => updateFilter("includeDeleted", event.target.checked)} />
+            Include deleted rows
+          </label>
         </DrawerSection>
 
         <DrawerSection title="Segmentation">
@@ -506,13 +528,13 @@ function FilterChip({ label, tone = "neutral", onRemove }: { label: string; tone
 // Chip strip only surfaces NON-default advanced filters. Date / company /
 // channel / comparison-window live as pills in the bar above, so they don't
 // double-render here.
-function buildFilterChips(context: DashboardContext): Array<{ key: keyof ReportFilterState; label: string; removable?: boolean; tone?: "neutral" | "primary" }> {
+function buildFilterChips(context: DashboardContext, filterOptions: WarehouseFilterOptions): Array<{ key: keyof ReportFilterState; label: string; removable?: boolean; tone?: "neutral" | "primary" }> {
   const chips: Array<{ key: keyof ReportFilterState; label: string; removable?: boolean; tone?: "neutral" | "primary" }> = [];
   if (context.filters.user !== "all") {
-    chips.push({ key: "user", label: `User: ${labelFromValue(context.filters.user, userOptions)}`, removable: true });
+    chips.push({ key: "user", label: `User: ${labelFromValue(context.filters.user, filterOptions.user)}`, removable: true });
   }
   if (context.filters.videoType !== "all") {
-    chips.push({ key: "videoType", label: `Type: ${labelFromValue(context.filters.videoType, videoTypeOptions)}`, removable: true });
+    chips.push({ key: "videoType", label: `Type: ${labelFromValue(context.filters.videoType, filterOptions.videoType)}`, removable: true });
   }
   if (context.filters.published !== "all") {
     chips.push({ key: "published", label: `Status: ${labelFromValue(context.filters.published, publishedOptions)}`, removable: true });
@@ -520,10 +542,22 @@ function buildFilterChips(context: DashboardContext): Array<{ key: keyof ReportF
   if (context.filters.dimension !== "none") {
     chips.push({ key: "dimension", label: `Dimension: ${labelFromValue(context.filters.dimension, dimensionOptions)}`, removable: true });
   }
+  for (const [key, label, options] of [
+    ["language", "Language", filterOptions.language],
+    ["serviceType", "Service", filterOptions.serviceType],
+    ["sourcePlatform", "Source platform", filterOptions.sourcePlatform],
+    ["publishPlatform", "Publish platform", filterOptions.publishPlatform],
+    ["status", "Status", filterOptions.status]
+  ] as const) {
+    if (context.filters[key] !== "all") chips.push({ key, label: `${label}: ${labelFromValue(context.filters[key], options)}`, removable: true });
+  }
+  if (!context.filters.includeDeleted) chips.push({ key: "includeDeleted", label: "Deleted rows excluded", removable: true });
   return chips;
 }
 
 function formatDateRangeLabel(dateRange: DateRange) {
+  if (!dateRange.start && !dateRange.end) return "All dates";
+  if (!dateRange.start || !dateRange.end) return `${dateRange.start || "Beginning"} to ${dateRange.end || "Latest"}`;
   const start = new Date(`${dateRange.start}T00:00:00`);
   const end = new Date(`${dateRange.end}T00:00:00`);
   const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
@@ -540,17 +574,7 @@ function labelFromValue(value: string, options: Array<{ value: string; label: st
 }
 
 function defaultFilterValue(key: keyof ReportFilterState) {
-  const defaults: ReportFilterState = {
-    comparison: "previous-period",
-    company: "AAA - Frammer AI",
-    channel: "Channel-Frammer AI",
-    user: "all",
-    videoType: "all",
-    dimension: "none",
-    dimensionFilter: "none",
-    published: "all"
-  };
-  return defaults[key];
+  return defaultReportFilters[key];
 }
 
 const comparisonOptions = [
@@ -558,23 +582,6 @@ const comparisonOptions = [
   { value: "previous-month", label: "Previous month" },
   { value: "previous-year", label: "Previous year" },
   { value: "none", label: "No comparison" }
-];
-
-const companyOptions = ["AAA - Frammer AI", ...companies.filter((company) => company !== "Frammer AI")].map((company) => ({
-  value: company,
-  label: company
-}));
-
-const channelOptions = ["Channel-Frammer AI", ...channels].map((channel) => ({
-  value: channel,
-  label: channel
-}));
-
-const userOptions = [{ value: "all", label: "All users" }, ...users.map((user) => ({ value: user, label: user }))];
-
-const videoTypeOptions = [
-  { value: "all", label: "All video types" },
-  ...inputTypes.map((type) => ({ value: type, label: type }))
 ];
 
 const dimensionOptions = [
@@ -595,5 +602,28 @@ const dimensionFilterOptions = [
 
 const publishedOptions = [
   { value: "all", label: "All publish states" },
-  ...publishedStatuses.map((status) => ({ value: status, label: status }))
+  ...["Published", "Scheduled", "Draft", "Failed"].map((status) => ({ value: status, label: status }))
 ];
+
+type WarehouseFilterOptions = Record<
+  "company" | "channel" | "user" | "language" | "videoType" | "serviceType" | "sourcePlatform" | "publishPlatform" | "status",
+  Array<{ value: string; label: string }>
+>;
+
+function buildWarehouseFilterOptions(filters?: Record<string, string[]>): WarehouseFilterOptions {
+  const options = (values: string[] | undefined, label: string) => [
+    { value: "all", label: `All ${label}` },
+    ...(values ?? []).map((value) => ({ value, label: value }))
+  ];
+  return {
+    company: options(filters?.companies, "companies"),
+    channel: options(filters?.channels, "channels"),
+    user: options(filters?.users, "users"),
+    language: options(filters?.languages, "languages"),
+    videoType: options(filters?.videoTypes, "video types"),
+    serviceType: options(filters?.serviceTypes, "service types"),
+    sourcePlatform: options(filters?.sourcePlatforms, "source platforms"),
+    publishPlatform: options(filters?.publishPlatforms, "publish platforms"),
+    status: options(Array.from(new Set([...(filters?.videoStatuses ?? []), ...(filters?.serviceStatuses ?? [])])).sort(), "statuses")
+  };
+}

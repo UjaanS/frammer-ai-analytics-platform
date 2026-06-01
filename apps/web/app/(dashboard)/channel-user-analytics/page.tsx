@@ -1,3 +1,5 @@
+"use client";
+
 import { ChannelDrilldown } from "@/components/analytics/channel-drilldown";
 import { MultiDimensionPanel } from "@/components/analytics/multi-dimension-panel";
 import { PageHeader } from "@/components/analytics/page-header";
@@ -9,13 +11,14 @@ import { ResponsiveGrid } from "@/components/layout/responsive-grid";
 import { PageContainer } from "@/components/shell/page-container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { aggregateByDimension } from "@/lib/analytics/engine";
-import { videoRecords } from "@/lib/analytics/mock-data";
+import { useSqlAnalyticsRecords } from "@/hooks/use-sql-analytics-records";
 
 export default function ChannelUserAnalyticsPage() {
-  const channelRanking = aggregateByDimension(videoRecords, "channel", "published");
-  const userContribution = aggregateByDimension(videoRecords, "user", "uploaded");
-  const languageBreakdown = aggregateByDimension(videoRecords, "language", "published");
-  const platformDistribution = aggregateByDimension(videoRecords, "platform", "uploaded");
+  const { records } = useSqlAnalyticsRecords();
+  const channelRanking = aggregateByDimension(records, "channel", "published");
+  const userContribution = aggregateByDimension(records, "user", "uploaded");
+  const languageBreakdown = aggregateByDimension(records, "language", "published");
+  const platformDistribution = aggregateByDimension(records, "platform", "uploaded");
   const lowPerformers = channelRanking.slice(-3).reverse();
 
   return (
@@ -70,8 +73,8 @@ export default function ChannelUserAnalyticsPage() {
           </Card>
         </ResponsiveGrid>
 
-        <ChannelDrilldown />
-        <MultiDimensionPanel />
+        <ChannelDrilldown records={records} />
+        <MultiDimensionPanel records={records} />
       </PageContainer>
     </PageTransition>
   );

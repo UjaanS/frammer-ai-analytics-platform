@@ -1,3 +1,5 @@
+"use client";
+
 import { MultiDimensionPanel } from "@/components/analytics/multi-dimension-panel";
 import { PageHeader } from "@/components/analytics/page-header";
 import { PageTransition } from "@/components/analytics/page-transition";
@@ -9,23 +11,25 @@ import { TreemapChart } from "@/components/charts/treemap-chart";
 import { ResponsiveGrid } from "@/components/layout/responsive-grid";
 import { PageContainer } from "@/components/shell/page-container";
 import { aggregateByDimension } from "@/lib/analytics/engine";
-import { channels, outputTypes, videoRecords } from "@/lib/analytics/mock-data";
-
-const stackedContent = channels.map((channel, index) => ({
-  name: channel,
-  Reels: 22 + index * 4,
-  Shorts: 30 - index * 2,
-  Summaries: 14 + index * 3
-}));
-
-const heatmapValues = outputTypes.map((_, row) =>
-  channels.map((__, column) => 12 + ((row + 2) * (column + 3)) % 34)
-);
+import { useSqlAnalyticsRecords } from "@/hooks/use-sql-analytics-records";
 
 export default function ContentAnalyticsPage() {
-  const outputMix = aggregateByDimension(videoRecords, "outputType", "uploaded");
-  const inputTrends = aggregateByDimension(videoRecords, "inputType", "processed");
+  const { records } = useSqlAnalyticsRecords();
+  const outputMix = aggregateByDimension(records, "outputType", "uploaded");
+  const inputTrends = aggregateByDimension(records, "inputType", "processed");
   const treemapData = outputMix.map((item) => ({ name: item.name, size: item.value + item.count * 3 }));
+  const channels = aggregateByDimension(records, "channel", "uploaded").slice(0, 6).map((item) => item.name);
+  const outputTypes = outputMix.slice(0, 6).map((item) => item.name);
+  const stackedContent = channels.map((channel) => ({
+    name: channel,
+    ...Object.fromEntries(outputTypes.map((output) => [
+      output,
+      records.filter((record) => record.channel === channel && record.outputType === output).length
+    ]))
+  }));
+  const heatmapValues = outputTypes.map((output) =>
+    channels.map((channel) => records.filter((record) => record.channel === channel && record.outputType === output).length)
+  );
 
   return (
     <PageTransition>
@@ -43,7 +47,7 @@ export default function ContentAnalyticsPage() {
             <HorizontalContent data={inputTrends} />
           </ChartFrame>
           <ChartFrame title="Reels vs Shorts vs Summaries" description="Stacked mix by channel.">
-            <StackedBarChart data={stackedContent} keys={["Reels", "Shorts", "Summaries"]} />
+            <StackedBarChart data={stackedContent} keys={outputTypes} />
           </ChartFrame>
           <ChartFrame title="Content Treemap" description="Relative output footprint.">
             <TreemapChart data={treemapData} />
@@ -54,7 +58,7 @@ export default function ContentAnalyticsPage() {
           <Heatmap rows={outputTypes} columns={channels} values={heatmapValues} />
         </ChartFrame>
 
-        <MultiDimensionPanel />
+        <MultiDimensionPanel records={records} />
       </PageContainer>
     </PageTransition>
   );
