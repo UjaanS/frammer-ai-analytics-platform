@@ -48,6 +48,7 @@ class WarehouseQueryRequest(BaseModel):
         "qualityIssues",
     ] = "videos"
     filters: AnalyticsFilterState = Field(default_factory=AnalyticsFilterState)
+    dimensionFilters: dict[str, str] = Field(default_factory=dict)
     search: str | None = None
     groupBy: list[str] = Field(default_factory=list, max_length=3)
     metrics: list[WarehouseMetricRequest] = Field(

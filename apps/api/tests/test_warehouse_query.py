@@ -1,5 +1,7 @@
 from apps.api.app.schemas.analytics import AnalyticsFilterState, WarehouseMetricRequest
-from apps.api.app.services.warehouse_query import aggregate_rows, filter_rows
+from types import SimpleNamespace
+
+from apps.api.app.services.warehouse_query import _service_row, aggregate_rows, filter_rows
 
 
 def test_unrestricted_filters_include_complete_dataset() -> None:
@@ -34,3 +36,39 @@ def test_filters_search_and_dynamic_aggregation_apply_to_active_rows_only() -> N
     )
 
     assert groups == [{"company": "A", "recordCount": 1, "durationSeconds": 10.0, "completionRate": 100.0}]
+
+
+def test_dimension_filters_scope_drilldown_rows() -> None:
+    rows = [
+        {"id": 1, "sourceTable": "videos", "issueCode": "orphan", "searchText": "videos orphan"},
+        {"id": 2, "sourceTable": "services", "issueCode": "orphan", "searchText": "services orphan"},
+    ]
+
+    assert filter_rows(rows, AnalyticsFilterState(), None, {"sourceTable": "videos"}) == [rows[0]]
+
+
+def test_service_rows_include_joined_dimensions_in_search() -> None:
+    service = SimpleNamespace(
+        source_id=1,
+        video_source_id=2,
+        service_type="summary",
+        initiated_by="system",
+        status_label="done",
+        duration_seconds=10,
+        published_raw=0,
+        date_added=None,
+    )
+    row = _service_row(
+        service,
+        {
+            "company": "Sky News",
+            "channel": "Test Sky News",
+            "user": "Test user",
+            "language": "en",
+            "videoType": "original",
+            "sourcePlatform": "youtube",
+        },
+    )
+
+    assert row["company"] == "Sky News"
+    assert "Sky News" in row["searchText"]

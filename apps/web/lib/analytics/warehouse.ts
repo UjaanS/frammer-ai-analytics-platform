@@ -35,6 +35,7 @@ export type WarehouseMetricRequest = {
 export type WarehouseQueryRequest = {
   dataset: WarehouseDatasetId;
   filters?: WarehouseFilterState;
+  dimensionFilters?: Record<string, string>;
   search?: string;
   groupBy?: string[];
   metrics?: WarehouseMetricRequest[];

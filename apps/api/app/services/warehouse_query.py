@@ -63,7 +63,10 @@ class WarehouseQueryService:
 
     async def query(self, request: WarehouseQueryRequest) -> WarehouseQueryResult:
         rows = await self._dataset_rows(request.dataset)
-        filtered = filter_rows(rows, request.filters, request.search)
+        invalid_filters = set(request.dimensionFilters) - set(DATASET_CATALOG[request.dataset]["dimensions"])
+        if invalid_filters:
+            raise ValueError(f"Unsupported dimension filters for {request.dataset}: {sorted(invalid_filters)}")
+        filtered = filter_rows(rows, request.filters, request.search, request.dimensionFilters)
         groups = aggregate_rows(filtered, request.groupBy, request.metrics, request.dataset)
         groups = sort_rows(groups, request.sortBy or _default_sort(request.metrics), request.sortDirection)
         latest = await self.repository.latest_load_run()
@@ -110,17 +113,22 @@ class WarehouseQueryService:
 
     async def _dataset_rows(self, dataset: str) -> list[dict[str, Any]]:
         videos = await self.repository.list_videos()
-        video_by_id = {row["video"].source_id: row for row in videos}
-        video_by_md5 = {row["video"].video_md5: row for row in videos}
+        video_rows = [_video_row(row) for row in videos]
+        video_by_id = {row["id"]: row for row in video_rows}
+        video_by_md5 = {row["videoMd5"]: row for row in video_rows}
 
         if dataset == "videos":
-            return [_video_row(row) for row in videos]
+            return video_rows
         if dataset == "serviceRequests":
             return [_service_row(row, video_by_id.get(row.video_source_id)) for row in await self.repository.list_services()]
         if dataset == "publishSchedules":
             return [_schedule_row(row, video_by_md5.get(row.video_md5)) for row in await self.repository.list_publish_schedules()]
         if dataset == "clipcutRequests":
-            return [_clipcut_row(row, video_by_md5.get(row.video_md5 or "")) for row in await self.repository.list_clipcut_requests()]
+            user_names = await self.repository.user_names_by_id()
+            return [
+                _clipcut_row(row, video_by_md5.get(row.video_md5 or ""), user_names.get(row.user_source_id))
+                for row in await self.repository.list_clipcut_requests()
+            ]
         if dataset == "trendingSnapshots":
             return [
                 {
@@ -163,7 +171,12 @@ class WarehouseQueryService:
         ]
 
 
-def filter_rows(rows: list[dict[str, Any]], filters: AnalyticsFilterState, search: str | None) -> list[dict[str, Any]]:
+def filter_rows(
+    rows: list[dict[str, Any]],
+    filters: AnalyticsFilterState,
+    search: str | None,
+    dimension_filters: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
     start = _date(filters.dateStart)
     end = _date(filters.dateEnd)
     terms = [term for term in (search or "").lower().split() if term]
@@ -187,6 +200,9 @@ def filter_rows(rows: list[dict[str, Any]], filters: AnalyticsFilterState, searc
             ("publishPlatform", filters.publishPlatform),
             ("status", filters.status),
         ):
+            if value and value != "all" and str(row.get(key, "")).lower() != value.lower():
+                return False
+        for key, value in (dimension_filters or {}).items():
             if value and value != "all" and str(row.get(key, "")).lower() != value.lower():
                 return False
         return not terms or all(term in str(row.get("searchText", "")).lower() for term in terms)
@@ -289,8 +305,9 @@ def _video_row(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def _service_row(row: Any, video_row: dict[str, Any] | None) -> dict[str, Any]:
+    dimensions = _joined_video_dimensions(video_row)
     return {
-        **_joined_video_dimensions(video_row),
+        **dimensions,
         "id": row.source_id,
         "date": _iso(row.date_added),
         "videoId": row.video_source_id,
@@ -299,33 +316,36 @@ def _service_row(row: Any, video_row: dict[str, Any] | None) -> dict[str, Any]:
         "status": row.status_label,
         "durationSeconds": row.duration_seconds,
         "published": row.published_raw == 1,
-        "searchText": _search_text(row.source_id, row.video_source_id, row.service_type, row.initiated_by, row.status_label),
+        "searchText": _search_text(row.source_id, row.video_source_id, row.service_type, row.initiated_by, row.status_label, *dimensions.values()),
     }
 
 
 def _schedule_row(row: Any, video_row: dict[str, Any] | None) -> dict[str, Any]:
+    dimensions = _joined_video_dimensions(video_row)
     return {
-        **_joined_video_dimensions(video_row),
+        **dimensions,
         "id": row.source_id,
         "date": _iso(row.scheduled_time),
         "videoMd5": row.video_md5,
         "publishPlatform": row.publish_platform,
         "status": row.status_label,
         "deleted": row.is_deleted,
-        "searchText": _search_text(row.source_id, row.video_md5, row.publish_platform, row.status_label),
+        "searchText": _search_text(row.source_id, row.video_md5, row.publish_platform, row.status_label, *dimensions.values()),
     }
 
 
-def _clipcut_row(row: Any, video_row: dict[str, Any] | None) -> dict[str, Any]:
+def _clipcut_row(row: Any, video_row: dict[str, Any] | None, user_name: str | None = None) -> dict[str, Any]:
+    dimensions = _joined_video_dimensions(video_row)
+    dimensions["user"] = user_name or dimensions["user"]
     return {
-        **_joined_video_dimensions(video_row),
+        **dimensions,
         "id": row.source_id,
         "date": _iso(row.created_at),
         "videoMd5": row.video_md5,
         "aspectRatio": row.aspect_ratio_type,
         "seriesName": row.series_name,
         "status": row.status_label,
-        "searchText": _search_text(row.source_id, row.video_md5, row.aspect_ratio_type, row.series_name, row.status_label),
+        "searchText": _search_text(row.source_id, row.video_md5, row.aspect_ratio_type, row.series_name, row.status_label, *dimensions.values()),
     }
 
 

@@ -63,14 +63,34 @@ export function WarehouseExplorer() {
     catalog ? ["/api/analytics/warehouse/query", query] : null,
     ([url, request]: [string, WarehouseQueryRequest]) => fetchJson(url, request)
   );
+  const detailQuery = useMemo<WarehouseQueryRequest>(
+    () => ({
+      dataset,
+      filters,
+      dimensionFilters: selectedGroup
+        ? Object.fromEntries(
+            [groupBy, secondGroupBy]
+              .filter((value) => value !== "none")
+              .map((dimension) => [dimension, String(selectedGroup[dimension] ?? "")])
+              .filter(([, value]) => value)
+          )
+        : undefined,
+      search: search || undefined,
+      metrics: [{ id: "recordCount", aggregation: "count" }],
+      sortBy: "date",
+      sortDirection: "desc",
+      limit: 10000
+    }),
+    [dataset, filters, groupBy, search, secondGroupBy, selectedGroup]
+  );
+  const { data: detailData } = useSWR<WarehouseQueryResponse>(
+    selectedGroup ? ["/api/analytics/warehouse/query", detailQuery] : null,
+    ([url, request]: [string, WarehouseQueryRequest]) => fetchJson(url, request)
+  );
 
   const rows = data?.data.rows ?? [];
   const groups = data?.data.groups ?? [];
-  const detailRows = selectedGroup
-    ? rows.filter((row) =>
-        Object.entries(selectedGroup).every(([key, value]) => key === metric || row[key] === value)
-      )
-    : rows;
+  const detailRows = selectedGroup ? detailData?.data.rows ?? [] : rows;
   const rowColumns = visibleColumns(detailRows);
   const groupColumns = visibleColumns(groups);
 

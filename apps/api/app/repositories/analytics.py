@@ -54,6 +54,9 @@ class AnalyticsRepository:
     async def list_clipcut_requests(self) -> list[FactClipcutRequest]:
         return list((await self.session.scalars(select(FactClipcutRequest))).all())
 
+    async def user_names_by_id(self) -> dict[int, str]:
+        return dict((await self.session.execute(select(DimUser.source_id, DimUser.name))).all())
+
     async def list_trending_snapshots(self) -> list[FactTrendingSnapshot]:
         return list((await self.session.scalars(select(FactTrendingSnapshot))).all())
 
