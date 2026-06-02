@@ -5,6 +5,7 @@ from datetime import date, datetime
 from typing import Any
 
 from apps.api.app.models.analytics import FactClipcutRequest, FactPublishSchedule, FactServiceRequest, FactVideo
+from apps.api.app.core.config import settings
 from apps.api.app.repositories.analytics import AnalyticsRepository
 
 
@@ -57,16 +58,31 @@ class SemanticAnalyticsService:
         self.repository = repository
 
     async def widget_query(self, query_key: str, config: dict[str, Any], context: dict[str, Any] | None) -> SemanticResult:
+        unavailable = unavailable_for_config(config)
+        meta = await self._meta(unavailable)
+        if query_key == "summary" and settings.use_sql_aggregation:
+            return SemanticResult(await self.repository.get_summary_metrics(context), meta)
+        if query_key == "qualityHeatmap":
+            issues = await self.repository.list_quality_issues()
+            return SemanticResult(build_quality_heatmap(issues), meta)
+        if query_key == "aiInsight":
+            return SemanticResult(
+                {
+                    "title": "SQL-backed analytics insight",
+                    "body": "Semantic metrics are available through the warehouse. NLQ can add compatible metadata-driven widgets.",
+                },
+                meta,
+            )
+
         rows = await self.repository.list_videos()
-        services = await self.repository.list_services()
-        schedules = await self.repository.list_publish_schedules()
-        clipcuts = await self.repository.list_clipcut_requests()
+        needs_summary = query_key == "summary"
+        services = await self.repository.list_services() if needs_summary or _requires_service_rows(context) else []
+        schedules = await self.repository.list_publish_schedules() if needs_summary or _requires_schedule_rows(context) else []
+        clipcuts = await self.repository.list_clipcut_requests() if needs_summary else []
         records = [
             legacy_video_record(row)
             for row in self._filter_video_rows(rows, context, services, schedules)
         ]
-        unavailable = unavailable_for_config(config)
-        meta = await self._meta(unavailable)
 
         if query_key == "summary":
             selected_video_ids = {record["sourceVideoId"] for record in records}
@@ -102,9 +118,6 @@ class SemanticAnalyticsService:
             return SemanticResult(build_platform_rows(records), meta)
         if query_key == "videoList":
             return SemanticResult(records[: int(config.get("rowsLimit", 10))], meta)
-        if query_key == "qualityHeatmap":
-            issues = await self.repository.list_quality_issues()
-            return SemanticResult(build_quality_heatmap(issues), meta)
         return SemanticResult(
             {
                 "title": "SQL-backed analytics insight",
@@ -399,6 +412,19 @@ def _has_active_filters(context: dict[str, Any] | None) -> bool:
         for key, value in filters.items()
         if key not in {"comparison", "dimension", "dimensionFilter", "includeDeleted"}
     ) or filters.get("includeDeleted") is False
+
+
+def _requires_service_rows(context: dict[str, Any] | None) -> bool:
+    return _matches_required(context, "serviceType")
+
+
+def _requires_schedule_rows(context: dict[str, Any] | None) -> bool:
+    return _matches_required(context, "publishPlatform")
+
+
+def _matches_required(context: dict[str, Any] | None, key: str) -> bool:
+    value = (context or {}).get("filters", {}).get(key)
+    return value not in {None, "", "all"}
 
 
 def _matches_related_service(

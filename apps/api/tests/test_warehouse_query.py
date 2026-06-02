@@ -1,7 +1,9 @@
-from apps.api.app.schemas.analytics import AnalyticsFilterState, WarehouseMetricRequest
+import asyncio
 from types import SimpleNamespace
 
-from apps.api.app.services.warehouse_query import _service_row, aggregate_rows, filter_rows
+from apps.api.app.core.config import settings
+from apps.api.app.schemas.analytics import AnalyticsFilterState, WarehouseMetricRequest, WarehouseQueryRequest
+from apps.api.app.services.warehouse_query import WarehouseQueryService, _service_row, aggregate_rows, filter_rows
 
 
 def test_unrestricted_filters_include_complete_dataset() -> None:
@@ -72,3 +74,26 @@ def test_service_rows_include_joined_dimensions_in_search() -> None:
 
     assert row["company"] == "Sky News"
     assert "Sky News" in row["searchText"]
+
+
+def test_warehouse_query_can_switch_between_sql_and_legacy_grouping(monkeypatch) -> None:
+    class Repository:
+        async def list_videos(self):
+            return []
+
+        async def aggregate_warehouse_query(self, request):
+            return [{"recordCount": 7}]
+
+        async def latest_load_run(self):
+            return None
+
+    request = WarehouseQueryRequest(dataset="videos")
+    service = WarehouseQueryService(Repository())
+
+    monkeypatch.setattr(settings, "use_sql_aggregation", True)
+    sql_result = asyncio.run(service.query(request))
+    monkeypatch.setattr(settings, "use_sql_aggregation", False)
+    legacy_result = asyncio.run(service.query(request))
+
+    assert sql_result.groups == [{"recordCount": 7}]
+    assert legacy_result.groups == [{"recordCount": 0}]

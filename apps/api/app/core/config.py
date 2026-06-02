@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     database_url: str = "postgresql+asyncpg://analytics:analytics@localhost:5432/analytics"
     backend_cors_origins: str = "http://localhost:3000"
+    use_sql_aggregation: bool = True
 
     @property
     def cors_origins(self) -> list[str]:

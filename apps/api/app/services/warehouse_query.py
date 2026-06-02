@@ -7,6 +7,7 @@ from statistics import mean
 from typing import Any, Iterable
 
 from apps.api.app.models.analytics import FactVideo
+from apps.api.app.core.config import settings
 from apps.api.app.repositories.analytics import AnalyticsRepository
 from apps.api.app.schemas.analytics import AnalyticsFilterState, WarehouseMetricRequest, WarehouseQueryRequest
 
@@ -67,7 +68,11 @@ class WarehouseQueryService:
         if invalid_filters:
             raise ValueError(f"Unsupported dimension filters for {request.dataset}: {sorted(invalid_filters)}")
         filtered = filter_rows(rows, request.filters, request.search, request.dimensionFilters)
-        groups = aggregate_rows(filtered, request.groupBy, request.metrics, request.dataset)
+        groups = (
+            await self.repository.aggregate_warehouse_query(request)
+            if settings.use_sql_aggregation
+            else aggregate_rows(filtered, request.groupBy, request.metrics, request.dataset)
+        )
         groups = sort_rows(groups, request.sortBy or _default_sort(request.metrics), request.sortDirection)
         latest = await self.repository.latest_load_run()
         return WarehouseQueryResult(
