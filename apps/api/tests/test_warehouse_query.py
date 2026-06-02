@@ -2,6 +2,7 @@ import asyncio
 from types import SimpleNamespace
 
 from apps.api.app.core.config import settings
+from apps.api.app.repositories.analytics import _warehouse_conditions, _warehouse_spec
 from apps.api.app.schemas.analytics import AnalyticsFilterState, WarehouseMetricRequest, WarehouseQueryRequest
 from apps.api.app.services.warehouse_query import WarehouseQueryService, _service_row, aggregate_rows, filter_rows
 
@@ -47,6 +48,22 @@ def test_dimension_filters_scope_drilldown_rows() -> None:
     ]
 
     assert filter_rows(rows, AnalyticsFilterState(), None, {"sourceTable": "videos"}) == [rows[0]]
+
+
+def test_global_filters_ignore_dimensions_not_exposed_by_dataset() -> None:
+    rows = [{"id": 1, "sourceTable": "videos", "issueCode": "orphan", "searchText": "videos orphan"}]
+
+    assert filter_rows(rows, AnalyticsFilterState(company="Sky News"), None, applicable_dimensions={"sourceTable"}) == rows
+
+
+def test_sql_warehouse_filters_ignore_non_applicable_dimensions_and_compare_case_insensitively() -> None:
+    quality_request = WarehouseQueryRequest(dataset="qualityIssues", filters=AnalyticsFilterState(company="Sky News"))
+    video_request = WarehouseQueryRequest(dataset="videos", filters=AnalyticsFilterState(company="sky news"))
+
+    assert _warehouse_conditions(_warehouse_spec("qualityIssues"), quality_request) == []
+    sql = str(_warehouse_conditions(_warehouse_spec("videos"), video_request)[0].compile(compile_kwargs={"literal_binds": True}))
+    assert "lower(" in sql
+    assert "'sky news'" in sql
 
 
 def test_service_rows_include_joined_dimensions_in_search() -> None:

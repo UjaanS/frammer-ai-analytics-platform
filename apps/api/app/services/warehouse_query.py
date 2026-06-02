@@ -67,7 +67,13 @@ class WarehouseQueryService:
         invalid_filters = set(request.dimensionFilters) - set(DATASET_CATALOG[request.dataset]["dimensions"])
         if invalid_filters:
             raise ValueError(f"Unsupported dimension filters for {request.dataset}: {sorted(invalid_filters)}")
-        filtered = filter_rows(rows, request.filters, request.search, request.dimensionFilters)
+        filtered = filter_rows(
+            rows,
+            request.filters,
+            request.search,
+            request.dimensionFilters,
+            set(DATASET_CATALOG[request.dataset]["dimensions"]),
+        )
         groups = (
             await self.repository.aggregate_warehouse_query(request)
             if settings.use_sql_aggregation
@@ -181,6 +187,7 @@ def filter_rows(
     filters: AnalyticsFilterState,
     search: str | None,
     dimension_filters: dict[str, str] | None = None,
+    applicable_dimensions: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     start = _date(filters.dateStart)
     end = _date(filters.dateEnd)
@@ -205,6 +212,8 @@ def filter_rows(
             ("publishPlatform", filters.publishPlatform),
             ("status", filters.status),
         ):
+            if applicable_dimensions is not None and key not in applicable_dimensions:
+                continue
             if value and value != "all" and str(row.get(key, "")).lower() != value.lower():
                 return False
         for key, value in (dimension_filters or {}).items():

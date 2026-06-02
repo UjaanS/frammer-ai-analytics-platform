@@ -541,11 +541,11 @@ def _warehouse_conditions(spec: dict[str, Any], request: WarehouseQueryRequest) 
         conditions.append(spec["deleted"].is_(False))
     for key in ("company", "channel", "user", "language", "videoType", "serviceType", "sourcePlatform", "publishPlatform", "status"):
         value = getattr(filters, key)
-        if _active(value):
-            conditions.append(spec["dimensions"].get(key, literal("")) == value)
+        if _active(value) and key in spec["dimensions"]:
+            conditions.append(func.lower(cast(spec["dimensions"][key], String)) == value.lower())
     for key, value in request.dimensionFilters.items():
         if _active(value):
-            conditions.append(spec["dimensions"].get(key, literal("")) == value)
+            conditions.append(func.lower(cast(spec["dimensions"][key], String)) == value.lower())
     if request.search:
         search_text = func.lower(func.concat_ws(" ", *[cast(value, String) for value in spec["searchable"]]))
         for term in request.search.lower().split():
