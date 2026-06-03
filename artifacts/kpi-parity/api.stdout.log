@@ -1,0 +1,5 @@
+
+> analytics-platform@0.1.0 api:dev
+> uv run --with-requirements apps/api/requirements.txt uvicorn apps.api.app.main:app --reload
+
+Terminate batch job (Y/N)? 

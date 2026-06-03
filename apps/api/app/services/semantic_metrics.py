@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from apps.api.app.models.analytics import FactClipcutRequest, FactPublishSchedule, FactServiceRequest, FactVideo
@@ -16,7 +16,22 @@ UNAVAILABLE_METRICS = {
     "creditConsumption": "Stored credits_used values are inactive in the supplied snapshot.",
 }
 
+PENDING_VALIDATION_METRICS = {
+    "videosDownloaded": "Completed mp4_download service requests exist, but retries and unique-video counting rules require business validation.",
+}
+
 METRIC_CATALOG = [
+    ("uploaded", "Original videos uploaded", True),
+    ("processed", "Completed original videos", True),
+    ("published", "Published videos", True),
+    ("reels", "Distinct videos with completed Reels service requests", True),
+    ("chapters", "Generated chapter videos", True),
+    ("shortsVideos", "Distinct videos with completed Shorts service requests", True),
+    ("mkmVideos", "Generated My Key Moments videos", True),
+    ("viralVideos", "Generated viral videos", True),
+    ("replacedVideos", "Distinct videos with recorded replacement events", True),
+    ("nonBillableVideos", "Videos marked as non-billable", True),
+    ("videosDownloaded", PENDING_VALIDATION_METRICS["videosDownloaded"], False),
     ("videosIngested", "Original videos ingested", True),
     ("generatedOutputs", "Generated child video outputs", True),
     ("processingSuccessRate", "Completed original videos / classified originals", True),
@@ -26,8 +41,15 @@ METRIC_CATALOG = [
     ("outputYield", "Generated child outputs / original videos", True),
     ("serviceCompletionRate", "Completed service requests / classified service requests", True),
     ("serviceBacklog", "Queued or in-progress service requests", True),
+    ("averageServiceLatency", "Average completed service request latency in minutes", True),
+    ("serviceErrorRate", "Errored service requests / classified service requests", True),
+    ("serviceErrorVolume", "Errored service requests", True),
+    ("stuckServiceJobs24h", "Queued or in-progress service requests older than 24 hours", True),
     ("publishScheduleCompletionRate", "Completed schedules / classified schedules", True),
+    ("publishThroughput", "Completed publish schedules", True),
+    ("publishPlatformHealth", "Publish schedule completion rate by platform", True),
     ("metadataCompleteness", "Generated metadata completeness", True),
+    ("recordedQualityIssues", "Data-quality issues recorded by the latest completed load", True),
     ("clipcutCompletionRate", "Completed clip-cut requests / classified clip-cut requests", True),
     ("downloads", UNAVAILABLE_METRICS["downloads"], False),
     ("views", UNAVAILABLE_METRICS["views"], False),
@@ -59,9 +81,25 @@ class SemanticAnalyticsService:
 
     async def widget_query(self, query_key: str, config: dict[str, Any], context: dict[str, Any] | None) -> SemanticResult:
         unavailable = unavailable_for_config(config)
-        meta = await self._meta(unavailable)
+        pending_validation = pending_validation_for_config(config)
+        meta = await self._meta(unavailable, pending_validation)
         if query_key == "summary" and settings.use_sql_aggregation:
             return SemanticResult(await self.repository.get_summary_metrics(context), meta)
+        if settings.use_sql_aggregation and query_key in {"timeTrend", "channelPerformance", "platformDistribution"}:
+            if query_key == "timeTrend":
+                return SemanticResult(
+                    await self.repository.get_time_trend(context, config.get("timeGroup", "day")),
+                    {**meta, "aggregation": "sql", "canonicalQuery": _canonical_query("videos", ["date"], config, context)},
+                )
+            if query_key == "channelPerformance":
+                return SemanticResult(
+                    await self.repository.get_channel_performance(context),
+                    {**meta, "aggregation": "sql", "canonicalQuery": _canonical_query("videos", ["channel"], config, context)},
+                )
+            return SemanticResult(
+                await self.repository.get_platform_distribution(context),
+                {**meta, "aggregation": "sql", "canonicalQuery": _canonical_query("videos", ["channel", "sourcePlatform"], config, context)},
+            )
         if query_key == "qualityHeatmap":
             issues = await self.repository.list_quality_issues()
             return SemanticResult(build_quality_heatmap(issues), meta)
@@ -130,13 +168,14 @@ class SemanticAnalyticsService:
         records = [legacy_video_record(row) for row in await self.repository.list_videos()]
         return SemanticResult(records[:limit], await self._meta({}))
 
-    async def _meta(self, unavailable: dict[str, str]) -> dict[str, Any]:
+    async def _meta(self, unavailable: dict[str, str], pending_validation: dict[str, str] | None = None) -> dict[str, Any]:
         latest = await self.repository.latest_load_run()
         return {
             "source": "sql",
-            "availability": "unavailable" if unavailable else "available",
+            "availability": "unavailable" if unavailable or pending_validation else "available",
             "asOf": latest.finished_at.isoformat() if latest and latest.finished_at else None,
             "unavailableMetrics": unavailable,
+            "pendingValidationMetrics": pending_validation or {},
         }
 
     def _filter_video_rows(
@@ -199,13 +238,28 @@ class SemanticAnalyticsService:
 
 
 def metric_catalog() -> list[dict[str, Any]]:
-    return [{"id": metric_id, "description": description, "available": available} for metric_id, description, available in METRIC_CATALOG]
+    return [
+        {
+            "id": metric_id,
+            "description": description,
+            "available": available,
+            "status": "pending_validation" if metric_id in PENDING_VALIDATION_METRICS else "available" if available else "unavailable",
+        }
+        for metric_id, description, available in METRIC_CATALOG
+    ]
 
 
 def unavailable_for_config(config: dict[str, Any]) -> dict[str, str]:
     requested = config.get("metricId") or config.get("metric")
     canonical = LEGACY_METRIC_ALIASES.get(requested, requested)
     reason = UNAVAILABLE_METRICS.get(canonical)
+    return {str(requested): reason} if requested and reason else {}
+
+
+def pending_validation_for_config(config: dict[str, Any]) -> dict[str, str]:
+    requested = config.get("metricId") or config.get("metric")
+    canonical = LEGACY_METRIC_ALIASES.get(requested, requested)
+    reason = PENDING_VALIDATION_METRICS.get(canonical)
     return {str(requested): reason} if requested and reason else {}
 
 
@@ -276,8 +330,12 @@ def build_summary(records: list[dict[str, Any]]) -> dict[str, float]:
     processed = sum(record["processingStatus"] == "done" for record in originals)
     published = sum(record["publishedStatus"] == "Published" for record in records)
     uploaded_duration = sum(record["durationMinutes"] for record in originals)
-    processing_duration = sum(record["processingMinutes"] for record in originals)
+    processing_duration = sum(record["processingMinutes"] for record in originals if record["processingStatus"] == "done")
     generated_outputs = len(records) - len(originals)
+    output_type_counts = {
+        output_type: sum(record["outputType"].lower() == output_type for record in records)
+        for output_type in ("chapters", "mykeymoments", "viral")
+    }
     return {
         "uploaded": len(originals),
         "processed": processed,
@@ -288,14 +346,18 @@ def build_summary(records: list[dict[str, Any]]) -> dict[str, float]:
         "publishedDuration": sum(record["durationMinutes"] for record in records if record["publishedStatus"] == "Published"),
         "publishRate": round(published / max(1, len(originals)) * 100),
         "downloadRate": 0,
-        "avgProcessing": round(processing_duration / max(1, len(originals)), 2),
+        "avgProcessing": round(processing_duration / max(1, processed), 2),
         "videosIngested": len(originals),
         "generatedOutputs": generated_outputs,
         "processingSuccessRate": round(processed / max(1, len(classified)) * 100, 2),
         "processingErrorRate": round(sum(record["processingStatus"] == "error" for record in originals) / max(1, len(classified)) * 100, 2),
         "processingBacklog": sum(record["processingStatus"] in {"not_started", "in_progress"} for record in originals),
-        "processingTurnaround": round(processing_duration / max(1, len(originals)), 2),
+        "processingTurnaround": round(processing_duration / max(1, processed), 2),
         "outputYield": round(generated_outputs / max(1, len(originals)), 2),
+        "chapters": output_type_counts["chapters"],
+        "mkmVideos": output_type_counts["mykeymoments"],
+        "viralVideos": output_type_counts["viral"],
+        "nonBillableVideos": sum(record.get("billableStatus") == "Non-billable" for record in records),
     }
 
 
@@ -311,13 +373,50 @@ def extend_operational_summary(
     classified_clipcuts = [clipcut for clipcut in clipcuts if clipcut.status_label in {"done", "error", "not_started", "in_progress"}]
     generated = [record for record in records if record["outputType"].lower() != "original"]
     present_metadata_fields = sum(sum(bool(value) for value in record["metadataPresence"]) for record in generated)
+    completed_services = [service for service in services if service.status_label == "done"]
+    completed_service_durations = [
+        service.duration_seconds
+        for service in completed_services
+        if service.duration_seconds is not None
+    ]
+    errors = sum(service.status_label == "error" for service in classified_services)
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=24)
 
     return {
         **summary,
         "serviceCompletionRate": round(sum(service.status_label == "done" for service in classified_services) / max(1, len(classified_services)) * 100, 2),
         "serviceBacklog": sum(service.status_label in {"queued", "in_progress"} for service in services),
+        "averageServiceLatency": round(sum(completed_service_durations) / max(1, len(completed_service_durations)) / 60, 2),
+        "serviceErrorRate": round(errors / max(1, len(classified_services)) * 100, 2),
+        "serviceErrorVolume": errors,
+        "stuckServiceJobs24h": sum(
+            service.status_label in {"queued", "in_progress"} and _service_timestamp(service) < cutoff
+            for service in services
+        ),
+        "reels": len({
+            service.video_source_id
+            for service in services
+            if service.video_source_id is not None
+            and service.status_label == "done"
+            and service.service_type == "reels"
+        }),
+        "shortsVideos": len({
+            service.video_source_id
+            for service in services
+            if service.video_source_id is not None
+            and service.status_label == "done"
+            and service.service_type == "shorts"
+        }),
+        "replacedVideos": len({
+            service.video_source_id
+            for service in services
+            if service.video_source_id is not None
+            and service.video_replaced_count > 0
+        }),
         "publishScheduleCompletionRate": round(sum(schedule.status_label == "completed" for schedule in classified_schedules) / max(1, len(classified_schedules)) * 100, 2),
+        "publishThroughput": sum(schedule.status_label == "completed" for schedule in schedules),
         "metadataCompleteness": round(present_metadata_fields / max(1, len(generated) * 6) * 100, 2),
+        "recordedQualityIssues": 0,
         "clipcutCompletionRate": round(sum(clipcut.status_label == "done" for clipcut in classified_clipcuts) / max(1, len(classified_clipcuts)) * 100, 2),
     }
 
@@ -400,6 +499,10 @@ def _matches(filter_value: str | None, record_value: str) -> bool:
     return not filter_value or filter_value == "all" or filter_value == record_value
 
 
+def _service_timestamp(service: FactServiceRequest) -> datetime:
+    return service.date_updated or service.start_time or service.date_added
+
+
 def _has_active_filters(context: dict[str, Any] | None) -> bool:
     if not context:
         return False
@@ -467,3 +570,16 @@ def _matches_related_clipcut(
         (not has_filters or clipcut.video_md5 in selected_video_md5s)
         and _matches(filters.get("status"), clipcut.status_label)
     )
+
+
+def _canonical_query(dataset: str, dimensions: list[str], config: dict[str, Any], context: dict[str, Any] | None) -> dict[str, Any]:
+    return {
+        "metric": config.get("metricId") or config.get("metric") or "recordCount",
+        "dimensions": dimensions,
+        "filters": (context or {}).get("filters", {}),
+        "grain": config.get("timeGroup"),
+        "comparison": (context or {}).get("comparison"),
+        "sort": config.get("sortBy"),
+        "limit": config.get("limit") or config.get("rowsLimit"),
+        "dataset": dataset,
+    }

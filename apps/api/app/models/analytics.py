@@ -100,6 +100,7 @@ class FactServiceRequest(Base):
     date_added: Mapped[datetime] = mapped_column(DateTime, index=True)
     date_updated: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     published_raw: Mapped[int] = mapped_column(Integer, default=0)
+    video_replaced_count: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class FactPublishSchedule(Base):

@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -69,6 +69,7 @@ SAFE_COLUMNS = {
         "date_added",
         "date_updated",
         "published",
+        "video_replaced",
     },
     "md_child_metadata": {
         "video_id",
@@ -240,6 +241,7 @@ def build_snapshot(path: Path) -> SnapshotBundle:
                 "date_added": _datetime(row.get("date_added")) or _utcnow(),
                 "date_updated": _datetime(row.get("date_updated")),
                 "published_raw": _int(row.get("published"), 0),
+                "video_replaced_count": _int(row.get("video_replaced"), 0),
             }
         )
         if video_id is None:
@@ -301,16 +303,30 @@ def build_snapshot(path: Path) -> SnapshotBundle:
     return bundle
 
 
-async def import_snapshot(path: Path) -> AnalyticsLoadRun:
+async def import_snapshot(path: Path, force: bool = False) -> AnalyticsLoadRun:
     checksum = hashlib.sha256(path.read_bytes()).hexdigest()
     async with AsyncSessionLocal() as session:
         existing = await session.scalar(select(AnalyticsLoadRun).where(AnalyticsLoadRun.source_checksum == checksum))
-        if existing:
+        if existing and not force:
             return existing
 
-        load_run = AnalyticsLoadRun(source_checksum=checksum, source_file=path.name)
-        session.add(load_run)
-        await session.flush()
+        if existing:
+            load_run = existing
+            load_run.status = "running"
+            load_run.started_at = _utcnow()
+            load_run.finished_at = None
+            load_run.row_counts = {}
+            load_run.rejected_count = 0
+            load_run.issue_count = 0
+            await session.execute(
+                delete(AnalyticsDataQualityIssue).where(
+                    AnalyticsDataQualityIssue.load_run_id == load_run.id
+                )
+            )
+        else:
+            load_run = AnalyticsLoadRun(source_checksum=checksum, source_file=path.name)
+            session.add(load_run)
+            await session.flush()
 
         try:
             bundle = build_snapshot(path)
@@ -415,8 +431,13 @@ def _bool(value: str | None, default: bool = False) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Load a Frammer SQL snapshot into analytics marts.")
     parser.add_argument("--file", type=Path, required=True, help="Path to the MySQL SQL dump")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Refresh an already imported snapshot after importer schema changes.",
+    )
     args = parser.parse_args()
-    load_run = asyncio.run(import_snapshot(args.file.resolve()))
+    load_run = asyncio.run(import_snapshot(args.file.resolve(), force=args.force))
     print(f"load_run={load_run.id} status={load_run.status} checksum={load_run.source_checksum}")
 
 

@@ -1,13 +1,16 @@
 "use client";
 
-import { Download, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Download, ExternalLink, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 
 import { FilterSelect } from "@/components/filters/filter-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useIsWidgetExpanded } from "@/components/widgets/widget-chrome";
+import { serializeExplorerQuery } from "@/lib/analytics/explorer-state";
 import type {
   WarehouseCatalog,
   WarehouseDatasetId,
@@ -30,26 +33,39 @@ const filterDefinitions: Array<{ key: keyof WarehouseFilterState; label: string;
   { key: "status", label: "Status", catalogKey: "statuses" }
 ];
 
-export function WarehouseExplorer() {
+export function WarehouseExplorer({
+  initialQuery,
+  mode = "full-page"
+}: {
+  initialQuery?: WarehouseQueryRequest;
+  mode?: "compact" | "overlay" | "full-page";
+}) {
+  const router = useRouter();
+  const isWidgetExpanded = useIsWidgetExpanded();
+  const effectiveMode = mode === "compact" && isWidgetExpanded ? "overlay" : mode;
+  const showAdvanced = effectiveMode !== "compact";
   const { data: catalogResponse } = useSWR<{ ok: boolean; data: WarehouseCatalog }>(
     "/api/analytics/warehouse/catalog",
     fetchJson
   );
   const catalog = catalogResponse?.data;
-  const [dataset, setDataset] = useState<WarehouseDatasetId>("videos");
-  const [filters, setFilters] = useState<WarehouseFilterState>(emptyFilters);
-  const [search, setSearch] = useState("");
-  const [groupBy, setGroupBy] = useState<string>("company");
-  const [secondGroupBy, setSecondGroupBy] = useState<string>("none");
-  const [metric, setMetric] = useState("recordCount");
-  const [aggregation, setAggregation] = useState<WarehouseMetricAggregation>("count");
+  const [dataset, setDataset] = useState<WarehouseDatasetId>(initialQuery?.dataset ?? "videos");
+  const [filters, setFilters] = useState<WarehouseFilterState>(initialQuery?.filters ?? emptyFilters);
+  const [dimensionFilters, setDimensionFilters] = useState<Record<string, string>>(initialQuery?.dimensionFilters ?? {});
+  const [search, setSearch] = useState(initialQuery?.search ?? "");
+  const [groupBy, setGroupBy] = useState<string>(initialQuery?.groupBy?.[0] ?? "company");
+  const [secondGroupBy, setSecondGroupBy] = useState<string>(initialQuery?.groupBy?.[1] ?? "none");
+  const [metric, setMetric] = useState(initialQuery?.metrics?.[0]?.id ?? "recordCount");
+  const [aggregation, setAggregation] = useState<WarehouseMetricAggregation>(initialQuery?.metrics?.[0]?.aggregation ?? "count");
   const [selectedGroup, setSelectedGroup] = useState<Record<string, unknown> | null>(null);
+  const [page, setPage] = useState(0);
 
   const datasetDefinition = catalog?.datasets.find((item) => item.id === dataset);
   const query = useMemo<WarehouseQueryRequest>(
     () => ({
       dataset,
       filters,
+      dimensionFilters,
       search: search || undefined,
       groupBy: [groupBy, secondGroupBy].filter((value) => value !== "none"),
       metrics: [{ id: metric, aggregation }],
@@ -57,7 +73,7 @@ export function WarehouseExplorer() {
       sortDirection: "desc",
       limit: 10000
     }),
-    [aggregation, dataset, filters, groupBy, metric, search, secondGroupBy]
+    [aggregation, dataset, dimensionFilters, filters, groupBy, metric, search, secondGroupBy]
   );
   const { data, error, isLoading } = useSWR<WarehouseQueryResponse>(
     catalog ? ["/api/analytics/warehouse/query", query] : null,
@@ -68,20 +84,23 @@ export function WarehouseExplorer() {
       dataset,
       filters,
       dimensionFilters: selectedGroup
-        ? Object.fromEntries(
+        ? {
+            ...dimensionFilters,
+            ...Object.fromEntries(
             [groupBy, secondGroupBy]
               .filter((value) => value !== "none")
               .map((dimension) => [dimension, String(selectedGroup[dimension] ?? "")])
               .filter(([, value]) => value)
           )
-        : undefined,
+          }
+        : dimensionFilters,
       search: search || undefined,
       metrics: [{ id: "recordCount", aggregation: "count" }],
       sortBy: "date",
       sortDirection: "desc",
       limit: 10000
     }),
-    [dataset, filters, groupBy, search, secondGroupBy, selectedGroup]
+    [dataset, dimensionFilters, filters, groupBy, search, secondGroupBy, selectedGroup]
   );
   const { data: detailData } = useSWR<WarehouseQueryResponse>(
     selectedGroup ? ["/api/analytics/warehouse/query", detailQuery] : null,
@@ -93,11 +112,20 @@ export function WarehouseExplorer() {
   const detailRows = selectedGroup ? detailData?.data.rows ?? [] : rows;
   const rowColumns = visibleColumns(detailRows);
   const groupColumns = visibleColumns(groups);
+  const pageSize = effectiveMode === "compact" ? 25 : 50;
+  const totalPages = Math.max(1, Math.ceil(detailRows.length / pageSize));
+  const pagedRows = detailRows.slice(page * pageSize, (page + 1) * pageSize);
+  const pageResetKey = JSON.stringify({ dataset, filters, dimensionFilters, search, groupBy, secondGroupBy, metric, aggregation, selectedGroup });
+
+  useEffect(() => {
+    setPage(0);
+  }, [pageResetKey]);
 
   function updateDataset(value: string) {
     const nextDataset = value as WarehouseDatasetId;
     const definition = catalog?.datasets.find((item) => item.id === nextDataset);
     setDataset(nextDataset);
+    setDimensionFilters({});
     setGroupBy(definition?.dimensions[0] ?? "none");
     setSecondGroupBy("none");
     setMetric("recordCount");
@@ -121,6 +149,10 @@ export function WarehouseExplorer() {
     URL.revokeObjectURL(url);
   }
 
+  function openFullExplorer() {
+    router.push(`/video-explorer?${serializeExplorerQuery({ ...query, limit: 10000 })}`);
+  }
+
   return (
     <div className="space-y-4">
       <Card className="shadow-sm">
@@ -132,37 +164,41 @@ export function WarehouseExplorer() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <FilterSelect
+            {showAdvanced ? <FilterSelect
               label="Dataset"
               value={dataset}
               options={(catalog?.datasets ?? []).map((item) => ({ value: item.id, label: item.label }))}
               onChange={updateDataset}
-            />
-            <FilterSelect
-              label="Group By"
-              value={groupBy}
-              options={options(datasetDefinition?.dimensions ?? [], false)}
-              onChange={(value) => {
-                setGroupBy(value);
-                setSelectedGroup(null);
-              }}
-            />
-            <FilterSelect
-              label="Second Group"
-              value={secondGroupBy}
-              options={options(datasetDefinition?.dimensions ?? [], true)}
-              onChange={(value) => {
-                setSecondGroupBy(value);
-                setSelectedGroup(null);
-              }}
-            />
-            <FilterSelect label="Metric" value={metric} options={options(datasetDefinition?.metrics ?? [], false)} onChange={updateMetric} />
-            <FilterSelect
+            /> : null}
+            {showAdvanced ? (
+              <>
+                <FilterSelect
+                  label="Group By"
+                  value={groupBy}
+                  options={options(datasetDefinition?.dimensions ?? [], false)}
+                  onChange={(value) => {
+                    setGroupBy(value);
+                    setSelectedGroup(null);
+                  }}
+                />
+                <FilterSelect
+                  label="Second Group"
+                  value={secondGroupBy}
+                  options={options(datasetDefinition?.dimensions ?? [], true)}
+                  onChange={(value) => {
+                    setSecondGroupBy(value);
+                    setSelectedGroup(null);
+                  }}
+                />
+              </>
+            ) : null}
+            {showAdvanced ? <FilterSelect label="Metric" value={metric} options={options(datasetDefinition?.metrics ?? [], false)} onChange={updateMetric} /> : null}
+            {showAdvanced ? <FilterSelect
               label="Aggregation"
               value={aggregation}
               options={(catalog?.metricAggregations ?? []).map((value) => ({ value, label: value.toUpperCase() }))}
               onChange={(value) => setAggregation(value as WarehouseMetricAggregation)}
-            />
+            /> : null}
             <label className="grid gap-1 text-xs font-medium text-muted-foreground xl:col-span-3">
               Search indexed fields
               <span className="relative">
@@ -176,7 +212,7 @@ export function WarehouseExplorer() {
               </span>
             </label>
           </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {showAdvanced ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <label className="grid gap-1 text-xs font-medium text-muted-foreground">
               Date start
               <input className="h-9 rounded-md border bg-background px-3 text-sm" type="date" value={filters.dateStart ?? ""} onChange={(event) => setFilters({ ...filters, dateStart: event.target.value || undefined })} />
@@ -198,29 +234,45 @@ export function WarehouseExplorer() {
               <input type="checkbox" checked={filters.includeDeleted !== false} onChange={(event) => setFilters({ ...filters, includeDeleted: event.target.checked })} />
               Include deleted rows
             </label>
-          </div>
+          </div> : null}
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <span>{isLoading ? "Loading warehouse..." : `${data?.meta.filteredRows ?? 0} of ${data?.meta.totalRows ?? 0} rows`}</span>
-            <Button variant="outline" size="sm" onClick={() => setFilters(emptyFilters)}>Clear filters</Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              setFilters(emptyFilters);
+              setDimensionFilters({});
+            }}>Clear filters</Button>
             <Button variant="outline" size="sm" onClick={exportCsv} disabled={!detailRows.length}>
               <Download className="mr-2 h-4 w-4" />
               Export rows
             </Button>
+            {effectiveMode !== "full-page" ? (
+              <Button variant="outline" size="sm" onClick={openFullExplorer}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Open Full Explorer
+              </Button>
+            ) : null}
           </div>
           {error ? <p className="text-sm text-destructive">Warehouse query failed: {String(error)}</p> : null}
         </CardContent>
       </Card>
 
-      <WarehouseTable
+      {showAdvanced ? <WarehouseTable
         title="Grouped Aggregation"
         rows={groups}
         columns={groupColumns}
         onRowClick={(row) => setSelectedGroup(row)}
-      />
+      /> : null}
       <WarehouseTable
         title={selectedGroup ? "Drilldown Rows" : "Warehouse Rows"}
-        rows={detailRows.slice(0, 500)}
+        rows={pagedRows}
         columns={rowColumns}
+        pagination={{
+          page,
+          totalPages,
+          totalRows: detailRows.length,
+          pageSize,
+          onPageChange: setPage
+        }}
       />
     </div>
   );
@@ -230,12 +282,20 @@ function WarehouseTable({
   title,
   rows,
   columns,
-  onRowClick
+  onRowClick,
+  pagination
 }: {
   title: string;
   rows: Array<Record<string, unknown>>;
   columns: string[];
   onRowClick?: (row: Record<string, unknown>) => void;
+  pagination?: {
+    page: number;
+    totalPages: number;
+    totalRows: number;
+    pageSize: number;
+    onPageChange: (page: number) => void;
+  };
 }) {
   return (
     <Card className="shadow-sm">
@@ -254,6 +314,22 @@ function WarehouseTable({
           </TableBody>
         </Table>
         {!rows.length ? <p className="py-8 text-center text-sm text-muted-foreground">No matching warehouse rows.</p> : null}
+        {pagination && pagination.totalRows ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span>
+              Showing {pagination.page * pagination.pageSize + 1}-{Math.min((pagination.page + 1) * pagination.pageSize, pagination.totalRows)} of {pagination.totalRows}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={pagination.page === 0} onClick={() => pagination.onPageChange(pagination.page - 1)}>
+                Previous
+              </Button>
+              <span>Page {pagination.page + 1} of {pagination.totalPages}</span>
+              <Button variant="outline" size="sm" disabled={pagination.page + 1 >= pagination.totalPages} onClick={() => pagination.onPageChange(pagination.page + 1)}>
+                Next
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

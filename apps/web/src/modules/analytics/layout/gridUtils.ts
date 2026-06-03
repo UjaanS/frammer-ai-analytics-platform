@@ -61,12 +61,13 @@ export function organizeWidgets(widgets: WidgetSchema[], mode: LayoutMode = "das
   // Bucket by category (preserves relative order within each bucket).
   const kpis = visible.filter((widget) => widget.type === "kpi");
   const videoList = visible.filter((widget) => widget.type === "table" && widget.queryKey === "videoList");
-  const charts = visible.filter((widget) => ["line-chart", "bar-chart", "pie-chart"].includes(widget.type));
+  const charts = visible.filter((widget) => ["line-chart", "bar-chart", "pie-chart", "funnel-chart"].includes(widget.type));
   const otherTables = visible.filter(
     (widget) => widget.type === "table" && widget.queryKey !== "videoList"
   );
   const aiInsights = visible.filter((widget) => widget.type === "ai-insight");
   const heatmaps = visible.filter((widget) => widget.type === "heatmap");
+  const explorers = visible.filter((widget) => widget.type === "warehouse-explorer");
 
   // Match chart -> sibling table by queryKey. A consumed table is
   // popped from `availableTables` so it's not placed twice.
@@ -167,7 +168,13 @@ export function organizeWidgets(widgets: WidgetSchema[], mode: LayoutMode = "das
   }
   commitRow();
 
-  // 7. Video list — always last, always full width.
+  // 7. Warehouse explorers — full width near the end of the dashboard.
+  for (const explorer of explorers) {
+    place(explorer, TOTAL_COLS, 7);
+    commitRow();
+  }
+
+  // 8. Video list — always last, always full width.
   for (const video of videoList) {
     place(video, TOTAL_COLS, 7);
     commitRow();

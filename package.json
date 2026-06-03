@@ -12,8 +12,8 @@
     "build": "npm run build --workspace @analytics/web",
     "lint": "npm run lint --workspace @analytics/web",
     "typecheck": "npm run typecheck --workspace @analytics/web",
-    "api:dev": "uvicorn apps.api.app.main:app --reload",
-    "api:test": "pytest apps/api/tests"
+    "api:dev": "uv run --with-requirements apps/api/requirements.txt uvicorn apps.api.app.main:app --reload",
+    "api:test": "uv run --with-requirements apps/api/requirements.txt pytest apps/api/tests"
   },
   "engines": {
     "node": ">=20.10.0",

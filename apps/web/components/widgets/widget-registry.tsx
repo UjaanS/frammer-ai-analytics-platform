@@ -25,11 +25,17 @@ import { ModeToggle, TimeGroupToggle } from "@/components/widgets/widget-control
 import { WidgetChrome, useIsWidgetExpanded } from "@/components/widgets/widget-chrome";
 import { SimpleDataTable, WhiteChartCanvas } from "@/components/widgets/widget-primitives";
 import {
+  FunnelChartWidget,
+  WarehouseChartWidget,
+  WarehouseExplorerWidget,
+  WarehouseTableWidget
+} from "@/components/widgets/warehouse-widgets";
+import { investigationForMetric } from "@/lib/analytics/warehouse-widget";
+import {
   calculateDelta,
   chartColors,
   formatMetricValue,
   formatMinutes,
-  platformKeys,
   platformPalette,
   timeGroupLabel
 } from "@/lib/widgets/dashboard-data";
@@ -48,6 +54,8 @@ export const widgetRegistry = {
   "bar-chart": BarChartWidget,
   "pie-chart": PieChartWidget,
   table: TableWidget,
+  "funnel-chart": FunnelChartWidget,
+  "warehouse-explorer": WarehouseExplorerWidget,
   heatmap: HeatmapWidget,
   "ai-insight": AiInsightWidget
 } satisfies Record<WidgetSchema["type"], (props: WidgetComponentProps) => JSX.Element>;
@@ -75,13 +83,17 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
   const trendData = rawTrend ?? [];
   const metric = widget.config.metricId ?? widget.config.metric ?? "uploaded";
   const unavailableReason = meta?.unavailableMetrics?.[metric];
+  const pendingValidationReason = meta?.pendingValidationMetrics?.[metric];
   const rawValue = data[metric] ?? 0;
   const comparisonValue = comparisonData?.[metric];
   const delta = comparisonValue === undefined ? null : calculateDelta(rawValue, comparisonValue);
-  const value = unavailableReason ? "Unavailable" : metric.includes("Duration") || metric === "avgProcessing" || metric === "processingTurnaround" ? formatMinutes(rawValue) : metric.includes("Rate") || metric === "publishRate" || metric === "metadataCompleteness" ? `${rawValue}%` : metric === "outputYield" ? rawValue.toFixed(2) : Math.round(rawValue).toLocaleString();
-  const detail = unavailableReason ?? getKpiDetail(metric, data);
+  const isDurationMetric = metric.includes("Duration") || metric.includes("Latency") || metric === "avgProcessing" || metric === "processingTurnaround";
+  const isRateMetric = metric.includes("Rate") || metric === "publishRate" || metric === "metadataCompleteness";
+  const value = pendingValidationReason ? "Pending Validation" : unavailableReason ? "Unavailable" : isDurationMetric ? formatMinutes(rawValue) : isRateMetric ? `${rawValue}%` : metric === "outputYield" ? rawValue.toFixed(2) : Math.round(rawValue).toLocaleString();
+  const detail = pendingValidationReason ?? unavailableReason ?? getKpiDetail(metric, data);
   const trendKey = getTrendKey(metric);
   const comparisonSummary = delta ? `${delta.percent > 0 ? "+" : ""}${delta.percent}% vs comparison context` : undefined;
+  const showLegacyBreakdowns = ["uploaded", "processed", "published", "publishRate", "avgProcessing"].includes(metric);
 
   return (
     <>
@@ -151,7 +163,7 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
           <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{widget.title}</h3>
           <div className="mt-1.5 text-xl font-black text-slate-900 dark:text-white">{value}</div>
           <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">{detail}</p>
-          {delta && !unavailableReason ? (
+          {delta && !unavailableReason && !pendingValidationReason ? (
             <div className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black ${delta.direction === "down" ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"}`}>
               {delta.direction === "up" ? "↑" : delta.direction === "down" ? "↓" : "→"} {delta.delta > 0 ? "+" : ""}
               {formatDeltaValue(delta.delta, metric)} · {delta.percent > 0 ? "+" : ""}
@@ -169,7 +181,11 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
         value={value}
         comparisonSummary={comparisonSummary}
         onClose={closeKPI}
-        chart={
+        onInvestigate={context.openInvestigation ? () => {
+          context.openInvestigation?.(investigationForMetric(metric, context.dashboardContext));
+          closeKPI();
+        } : undefined}
+        chart={showLegacyBreakdowns ? (
           <WhiteChartCanvas>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData} margin={{ left: 8, right: 16, top: 12, bottom: 8 }}>
@@ -181,8 +197,8 @@ function KpiWidget({ widget, context }: WidgetComponentProps) {
               </LineChart>
             </ResponsiveContainer>
           </WhiteChartCanvas>
-        }
-        breakdowns={<KpiBreakdowns context={context} trendKey={trendKey} />}
+        ) : undefined}
+        breakdowns={showLegacyBreakdowns ? <KpiBreakdowns context={context} trendKey={trendKey} /> : undefined}
       />
     </>
   );
@@ -208,7 +224,7 @@ function KpiBreakdowns({ context, trendKey }: { context: WidgetDataContext; tren
     .slice(0, 5)
     .map((row) => ({ name: String(row.channel), value: Number(row[channelKey] ?? 0) }));
 
-  const platformTotals = platformKeys
+  const platformTotals = metricKeysForRows(platformRows, "count")
     .map((platform) => ({
       name: platform,
       value: platformRows.reduce((sum, row) => sum + Number(row[`${platform}-count`] ?? 0), 0)
@@ -290,6 +306,11 @@ function EmptyHint({ message }: { message: string }) {
 }
 
 function LineChartWidget({ widget, context }: WidgetComponentProps) {
+  if (widget.config.warehouseQuery) return <WarehouseChartWidget widget={widget} context={context} variant="line" />;
+  return <LegacyLineChartWidget widget={widget} context={context} />;
+}
+
+function LegacyLineChartWidget({ widget, context }: WidgetComponentProps) {
   const mode = widget.config.metricMode ?? "count";
   const timeGroup = widget.config.timeGroup ?? "day";
   const { data: rawData } = useWidgetData<Array<Record<string, string | number>>>(widget.queryKey, widget.config, context.dashboardContext);
@@ -343,6 +364,11 @@ function LineChartWidget({ widget, context }: WidgetComponentProps) {
 }
 
 function BarChartWidget({ widget, context }: WidgetComponentProps) {
+  if (widget.config.warehouseQuery) return <WarehouseChartWidget widget={widget} context={context} variant="bar" />;
+  return <LegacyBarChartWidget widget={widget} context={context} />;
+}
+
+function LegacyBarChartWidget({ widget, context }: WidgetComponentProps) {
   const mode = widget.config.metricMode ?? "count";
   const { data: rawData } = useWidgetData<Array<Record<string, string | number>>>(widget.queryKey, widget.config, context.dashboardContext);
   const { data: rawComparison } = useWidgetData<Array<Record<string, string | number>>>(
@@ -374,7 +400,7 @@ function BarChartWidget({ widget, context }: WidgetComponentProps) {
               <YAxis tick={{ fill: "#4b5563", fontSize: 12 }} tickLine={false} />
               <Tooltip formatter={(value) => formatMetricValue(Number(value), mode)} />
               <Legend />
-              {platformKeys.map((platform, index) => {
+              {metricKeysForRows([...data, ...comparisonData], mode).map((platform, index, platforms) => {
                 const baseKey = `${platform}-${mode}`;
                 const dataKeys =
                   context.viewMode === "overlay" && comparisonData.length
@@ -390,9 +416,9 @@ function BarChartWidget({ widget, context }: WidgetComponentProps) {
                     dataKey={item.key}
                     name={item.name}
                     stackId={item.stackId}
-                    fill={platformPalette[index]}
+                    fill={platformPalette[index % platformPalette.length]}
                     fillOpacity={item.key.endsWith("B") ? 0.55 : 1}
-                    radius={index === platformKeys.length - 1 ? [8, 8, 0, 0] : [0, 0, 0, 0]}
+                    radius={index === platforms.length - 1 ? [8, 8, 0, 0] : [0, 0, 0, 0]}
                   />
                 ));
               })}
@@ -417,6 +443,11 @@ function BarChartWidget({ widget, context }: WidgetComponentProps) {
 }
 
 function PieChartWidget({ widget, context }: WidgetComponentProps) {
+  if (widget.config.warehouseQuery) return <WarehouseChartWidget widget={widget} context={context} variant="pie" />;
+  return <LegacyPieChartWidget widget={widget} context={context} />;
+}
+
+function LegacyPieChartWidget({ widget, context }: WidgetComponentProps) {
   const { data: rowsRaw } = useWidgetData<Array<Record<string, string | number>>>("channelPerformance", widget.config, context.dashboardContext);
   const rows = rowsRaw ?? [];
   const data = rows.slice(0, 5).map((row) => ({ name: String(row.channel), value: Number(row.published) }));
@@ -447,6 +478,9 @@ function PieChartWidget({ widget, context }: WidgetComponentProps) {
 }
 
 function TableWidget({ widget, context }: WidgetComponentProps) {
+  if (widget.config.warehouseQuery) {
+    return <WarehouseTableWidget widget={widget} context={context} />;
+  }
   if (widget.queryKey === "videoList") {
     return <VideoListWidget widget={widget} context={context} />;
   }
@@ -662,11 +696,12 @@ function buildWidgetTable(widget: WidgetSchema, data: Array<Record<string, strin
   }
 
   if (widget.queryKey === "platformDistribution") {
+    const platforms = metricKeysForRows(data, mode);
     return {
-      columns: ["Channel Name", ...platformKeys],
+      columns: ["Channel Name", ...platforms],
       rows: data.map((row) => [
         String(row.channel),
-        ...platformKeys.map((platform) => formatMetricValue(Number(row[`${platform}-${mode}`] ?? 0), mode))
+        ...platforms.map((platform) => formatMetricValue(Number(row[`${platform}-${mode}`] ?? 0), mode))
       ])
     };
   }
@@ -699,16 +734,47 @@ function getKpiDetail(metric: string, data: Record<string, number>) {
   if (metric === "processed") return formatMinutes(data.processedDuration ?? 0);
   if (metric === "published") return formatMinutes(data.publishedDuration ?? 0);
   if (metric === "downloads") return `${(data.downloadRate ?? 0).toFixed(1)} per published`;
+  if (metric === "chapters") return "Generated chapter videos";
+  if (metric === "mkmVideos") return "Generated My Key Moments videos";
+  if (metric === "viralVideos") return "Generated viral videos";
+  if (metric === "nonBillableVideos") return "Warehouse videos marked non-billable";
   if (metric === "publishRate") return "Published / uploaded";
   if (metric === "avgProcessing") return "Per processed video";
+  if (metric === "videosIngested") return "Original warehouse videos";
+  if (metric === "generatedOutputs") return "Generated child outputs";
+  if (metric === "outputYield") return "Generated outputs / ingested originals";
+  if (metric === "processingBacklog") return "Originals not started or in progress";
+  if (metric === "processingTurnaround") return "Per completed original video";
+  if (metric === "serviceCompletionRate") return "Completed / classified service requests";
+  if (metric === "serviceBacklog") return "Queued or in-progress service requests";
+  if (metric === "averageServiceLatency") return "Per completed service request";
+  if (metric === "serviceErrorRate") return "Errors / classified service requests";
+  if (metric === "serviceErrorVolume") return "Errored service requests";
+  if (metric === "stuckServiceJobs24h") return "Queued or in-progress for more than 24 hours";
+  if (metric === "publishThroughput") return "Completed publish schedules";
+  if (metric === "metadataCompleteness") return "Generated metadata fields present";
+  if (metric === "recordedQualityIssues") return "Latest completed warehouse load";
   return "Configured metric";
 }
 
 function formatDeltaValue(value: number, metric: string) {
   const absolute = Math.abs(value);
-  if (metric.includes("Duration") || metric === "avgProcessing") return formatMinutes(absolute);
-  if (metric === "publishRate") return `${Math.round(absolute)} pts`;
+  if (metric.includes("Duration") || metric.includes("Latency") || metric === "avgProcessing" || metric === "processingTurnaround") return formatMinutes(absolute);
+  if (metric.includes("Rate") || metric === "publishRate" || metric === "metadataCompleteness") return `${Math.round(absolute)} pts`;
   return Math.round(absolute).toLocaleString();
+}
+
+function metricKeysForRows(rows: Array<Record<string, string | number>>, mode: "count" | "duration") {
+  const suffix = `-${mode}`;
+  return Array.from(
+    new Set(
+      rows.flatMap((row) =>
+        Object.keys(row)
+          .filter((key) => key.endsWith(suffix))
+          .map((key) => key.slice(0, -suffix.length))
+      )
+    )
+  ).sort((a, b) => a.localeCompare(b));
 }
 
 function mergeTimeSeries(current: Array<Record<string, string | number>>, comparison: Array<Record<string, string | number>>) {

@@ -3,6 +3,7 @@
 // bound hook methods so it stays decoupled from React component state.
 
 import type { ComparisonViewMode, DateRange, LayoutMode, ReportFilterState, WidgetConfig, WidgetSchema } from "@/lib/widgets/types";
+import type { WarehouseQueryRequest } from "@/lib/analytics/warehouse";
 import type { Persona } from "@/lib/widgets/dashboard-presets";
 import type { NlqAction } from "./types";
 
@@ -18,6 +19,7 @@ export type ApplyHandlers = {
   resetDashboard: () => void;
   organizeDashboard: () => void;
   layoutMode: LayoutMode;
+  openExplorer: (query: WarehouseQueryRequest) => void;
 };
 
 export function applyNlqActions(actions: NlqAction[], handlers: ApplyHandlers): void {
@@ -75,6 +77,10 @@ export function applyNlqActions(actions: NlqAction[], handlers: ApplyHandlers): 
         handlers.resetDashboard();
         break;
 
+      case "open_explorer":
+        handlers.openExplorer(action.input.query);
+        break;
+
       default:
         // Exhaustiveness check — TypeScript will error here if a new action
         // type is added without a handler.
@@ -96,6 +102,7 @@ function defaultSpanForType(type: WidgetSchema["type"], mode: LayoutMode) {
   const compare = mode === "comparison";
   if (type === "kpi") return { w: 2, h: 2, minW: 2, minH: 2 };
   if (type === "table") return { w: compare ? 6 : 12, h: 7, minW: compare ? 6 : 6, minH: 5 };
+  if (type === "warehouse-explorer") return { w: compare ? 6 : 12, h: 7, minW: compare ? 6 : 6, minH: 5 };
   if (type === "ai-insight") return { w: 6, h: 4, minW: 3, minH: 3 };
   return { w: 6, h: compare ? 7 : 6, minW: 3, minH: 5 };
 }

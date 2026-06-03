@@ -1,4 +1,5 @@
 import type { Layout } from "react-grid-layout";
+import type { WarehouseDatasetId, WarehouseMetricRequest, WarehouseQueryRequest } from "@/lib/analytics/warehouse";
 
 export type DateRange = {
   start: string;
@@ -48,6 +49,8 @@ export type WidgetType =
   | "bar-chart"
   | "pie-chart"
   | "table"
+  | "funnel-chart"
+  | "warehouse-explorer"
   | "heatmap"
   | "ai-insight";
 
@@ -76,6 +79,19 @@ export type WidgetConfig = {
   rowsLimit?: number;
   showTable?: boolean;
   description?: string;
+  warehouseQuery?: WarehouseWidgetQuery;
+  funnelStages?: Array<{ label: string; metricId: string }>;
+  funnelInclude?: string[];
+};
+
+export type WarehouseWidgetQuery = {
+  dataset: WarehouseDatasetId;
+  groupBy?: string[];
+  metrics: WarehouseMetricRequest[];
+  fixedDimensionFilters?: Record<string, string>;
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
+  limit?: number;
 };
 
 export type WidgetSchema = {
@@ -109,4 +125,5 @@ export type WidgetDataContext = {
   syncHover?: boolean;
   setWidgetConfig: (widgetId: string, config: Partial<WidgetConfig>) => void;
   removeWidget?: (widgetId: string) => void;
+  openInvestigation?: (query: WarehouseQueryRequest) => void;
 };

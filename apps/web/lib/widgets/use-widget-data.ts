@@ -22,6 +22,7 @@ export type WidgetDataMeta = {
   reason?: string;
   fallbackReason?: string;
   unavailableMetrics?: Record<string, string>;
+  pendingValidationMetrics?: Record<string, string>;
 };
 
 type Response<T> = { ok: true; data: T; meta?: WidgetDataMeta } | { ok: false; error: string };

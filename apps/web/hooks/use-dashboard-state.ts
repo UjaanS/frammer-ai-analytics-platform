@@ -144,7 +144,7 @@ function reconcileWidgets(defaultWidgets: WidgetSchema[], storedWidgets: WidgetS
 
 function sanitizeStoredWidgets(widgets: WidgetSchema[]) {
   const seen = new Set<string>();
-  const validTypes = new Set(["kpi", "line-chart", "bar-chart", "pie-chart", "table", "heatmap", "ai-insight"]);
+  const validTypes = new Set(["kpi", "line-chart", "bar-chart", "pie-chart", "table", "funnel-chart", "warehouse-explorer", "heatmap", "ai-insight"]);
   const validQueryKeys = new Set(["summary", "timeTrend", "channelPerformance", "platformDistribution", "videoList", "qualityHeatmap", "aiInsight"]);
 
   return widgets.flatMap((widget) => {

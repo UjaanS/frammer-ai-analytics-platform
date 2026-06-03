@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { Button } from "@/components/ui/button";
 
 type KPIModalProps = {
   open: boolean;
@@ -12,12 +13,13 @@ type KPIModalProps = {
   detail: string;
   value: string;
   comparisonSummary?: string;
-  chart: ReactNode;
+  chart?: ReactNode;
   breakdowns?: ReactNode;
   onClose: () => void;
+  onInvestigate?: () => void;
 };
 
-export function KPIModal({ open, title, contextLabel, detail, value, comparisonSummary, chart, breakdowns, onClose }: KPIModalProps) {
+export function KPIModal({ open, title, contextLabel, detail, value, comparisonSummary, chart, breakdowns, onClose, onInvestigate }: KPIModalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -89,7 +91,7 @@ export function KPIModal({ open, title, contextLabel, detail, value, comparisonS
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="mt-5 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
+            <div className={chart ? "mt-5 grid gap-4 md:grid-cols-[0.8fr_1.2fr]" : "mt-5"}>
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-[#2d3147]">
                 <div className="text-sm font-bold text-slate-500 dark:text-slate-400">Current value</div>
                 <div className="mt-3 text-4xl font-black text-slate-900 dark:text-white">{value}</div>
@@ -97,8 +99,9 @@ export function KPIModal({ open, title, contextLabel, detail, value, comparisonS
                 {comparisonSummary ? (
                   <div className="mt-4 rounded-lg bg-slate-100 p-3 text-sm font-bold text-slate-700 dark:bg-white/[0.04] dark:text-slate-200">{comparisonSummary}</div>
                 ) : null}
+                {onInvestigate ? <Button type="button" className="mt-4" onClick={onInvestigate}>Investigate records</Button> : null}
               </div>
-              {chart}
+              {chart ?? null}
             </div>
             {breakdowns ? <div className="mt-4">{breakdowns}</div> : null}
           </motion.div>

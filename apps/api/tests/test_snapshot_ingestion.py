@@ -19,8 +19,8 @@ INSERT INTO `videos` (`id`, `user_id`, `company_id`, `channel_id`, `video_md5`, 
 (11, 3, 99, 2, 'child', 'https://example.test/child', 'Child', 'child.mp4', 'en', 30, 10, '2026-01-01 00:00:00', '2026-01-01 00:01:00', NULL, NULL, 10, 'viral', 'child', 0, 0, 0, 1);
 INSERT INTO `md_child_metadata` (`video_id`, `caption`, `hashtag`, `synopsis`, `subtitles`, `thumbnails`, `characters`, `credentials`) VALUES
 (11, 'caption', '#tag', 'synopsis', 'subtitles', 'thumb', 'characters', 'never-store');
-INSERT INTO `services_requested` (`id`, `video_id`, `service_type_id`, `initiated_by`, `start_time`, `end_time`, `status`, `duration`, `date_added`, `date_updated`, `published`, `data`) VALUES
-(20, 0, 'transcript', 'user', '2026-01-01 00:00:00', NULL, 7, NULL, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 0, 'never-store');
+INSERT INTO `services_requested` (`id`, `video_id`, `service_type_id`, `initiated_by`, `start_time`, `end_time`, `status`, `duration`, `date_added`, `date_updated`, `published`, `video_replaced`, `data`) VALUES
+(20, 0, 'transcript', 'user', '2026-01-01 00:00:00', NULL, 7, NULL, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 0, 2, 'never-store');
 INSERT INTO `video_publish_schedulers` (`id`, `user_id`, `company_id`, `channel_id`, `video_id`, `status`, `platform_type`, `scheduled_time`, `destination_id`, `is_deleted`) VALUES
 (30, 3, 1, 2, 'master', 2, ' facebook-reels', '2026-01-02 00:00:00', NULL, 0);
 INSERT INTO `video_clipcut_club_requests` (`request_id`, `user_id`, `video_md5`, `aspect_ratio_type`, `series_name`, `status`, `create_time`, `update_time`) VALUES
@@ -48,6 +48,7 @@ def test_snapshot_normalizes_and_records_quality_issues(tmp_path: Path) -> None:
         {"child_video_source_id": 11, "parent_video_source_id": 10, "child_video_type": "viral"}
     ]
     assert bundle.videos[1]["metadata_caption_present"] is True
+    assert bundle.services[0]["video_replaced_count"] == 2
     codes = {issue["issue_code"] for issue in bundle.issues}
     assert "unknown_video_status" in codes
     assert "unknown_service_status" in codes

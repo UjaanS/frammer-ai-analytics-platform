@@ -1,7 +1,8 @@
 // Shared types between the /api/nlq route and the client apply-action loop.
 
 import type { Persona } from "@/lib/widgets/dashboard-presets";
-import type { ReportFilterState } from "@/lib/widgets/types";
+import type { WarehouseQueryRequest } from "@/lib/analytics/warehouse";
+import type { ReportFilterState, WarehouseWidgetQuery, WidgetType } from "@/lib/widgets/types";
 
 export type NlqContextSnapshot = {
   persona: Persona;
@@ -45,10 +46,10 @@ export type NlqAction =
   | {
       name: "add_widget";
       input: {
-        type: "kpi" | "line-chart" | "bar-chart" | "pie-chart" | "table" | "heatmap" | "ai-insight";
+        type: WidgetType;
         queryKey: "summary" | "timeTrend" | "channelPerformance" | "platformDistribution" | "videoList" | "qualityHeatmap" | "aiInsight";
         title: string;
-        config?: { metric?: string; metricId?: string; dimension?: string; dimensionIds?: string[]; metricMode?: "count" | "duration"; timeGroup?: "day" | "month" | "year"; description?: string };
+        config?: { metric?: string; metricId?: string; dimension?: string; dimensionIds?: string[]; metricMode?: "count" | "duration"; timeGroup?: "day" | "month" | "year"; description?: string; warehouseQuery?: WarehouseWidgetQuery };
       };
     }
   | {
@@ -57,11 +58,15 @@ export type NlqAction =
     }
   | {
       name: "update_widget_config";
-      input: { widgetId: string; config: { metric?: string; metricId?: string; dimension?: string; dimensionIds?: string[]; metricMode?: "count" | "duration"; timeGroup?: "day" | "month" | "year"; description?: string } };
+      input: { widgetId: string; config: { metric?: string; metricId?: string; dimension?: string; dimensionIds?: string[]; metricMode?: "count" | "duration"; timeGroup?: "day" | "month" | "year"; description?: string; warehouseQuery?: WarehouseWidgetQuery } };
     }
   | {
       name: "reset_dashboard";
       input: Record<string, never>;
+    }
+  | {
+      name: "open_explorer";
+      input: { query: WarehouseQueryRequest };
     };
 
 export type NlqResponse =

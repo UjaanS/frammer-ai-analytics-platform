@@ -4,9 +4,10 @@
 // rambling.
 
 import { allowedValuesForWarehouse } from "./tools";
+import type { WarehouseCatalog } from "@/lib/analytics/warehouse";
 import type { NlqContextSnapshot } from "./types";
 
-export function buildSystemPrompt(state: NlqContextSnapshot, warehouseFilters?: Record<string, string[]>): string {
+export function buildSystemPrompt(state: NlqContextSnapshot, warehouseFilters?: Record<string, string[]>, warehouseCatalog?: WarehouseCatalog): string {
   const allowedValues = allowedValuesForWarehouse(warehouseFilters);
   const contextSummary = state.contexts
     .map((ctx) => {
@@ -16,6 +17,9 @@ export function buildSystemPrompt(state: NlqContextSnapshot, warehouseFilters?: 
       return `  ${ctx.id} ("${ctx.label}"): ${ctx.dateRange.start} to ${ctx.dateRange.end} | ${filters}`;
     })
     .join("\n");
+  const datasetSummary = warehouseCatalog?.datasets
+    .map((dataset) => `- ${dataset.id}: dimensions=${dataset.dimensions.join(", ")} | metrics=${dataset.metrics.join(", ")}`)
+    .join("\n") ?? "(warehouse catalog unavailable)";
 
   return `You are the natural-language assistant for the Frammer analytics dashboard.
 Your job is to translate the user's request into a sequence of tool calls that update the dashboard.
@@ -47,9 +51,14 @@ These enums are strict — server-side validation will reject any value not in t
 - widget types: ${allowedValues.widgetTypes.join(", ")}
 - widget queryKeys: ${allowedValues.queryKeys.join(", ")}
 - viewModes: ${allowedValues.viewModes.join(", ")}
-- metric values for KPI widgets: uploaded, processed, published, downloads, publishRate, avgProcessing
 - canonical semantic metrics: ${allowedValues.semanticMetrics.join(", ")}
 - canonical semantic dimensions: ${allowedValues.semanticDimensions.join(", ")}
+- warehouse datasets: ${allowedValues.warehouseDatasets.join(", ")}
+- warehouse aggregations: ${allowedValues.warehouseAggregations.join(", ")}
+
+## Warehouse catalog
+
+${datasetSummary}
 
 ## Rules
 
@@ -59,8 +68,9 @@ These enums are strict — server-side validation will reject any value not in t
 4. For widget creation, pick the smallest correct queryKey and include config.metricId / config.dimensionIds when a canonical semantic mapping exists.
 5. Source platform and publish platform are separate dimensions. Do not merge them.
 6. Treat the warehouse catalog as authoritative. Use any imported dataset or semantic metric needed by the question.
-7. After tool calls, provide a one-sentence summary in the final text response describing what changed in plain English. Keep it under 100 characters.
-8. If the user's request is ambiguous or references something that doesn't exist (e.g. a fictional channel), still attempt the closest valid action and explain in the summary.
-9. If the request truly cannot be mapped to any action, respond with no tool calls and a brief explanation as text.
+7. Use open_explorer when the user asks to inspect, investigate, list, or drill into source records.
+8. After tool calls, provide a one-sentence summary in the final text response describing what changed in plain English. Keep it under 100 characters.
+9. If the user's request is ambiguous or references something that doesn't exist (e.g. a fictional channel), still attempt the closest valid action and explain in the summary.
+10. If the request truly cannot be mapped to any action, respond with no tool calls and a brief explanation as text.
 `;
 }

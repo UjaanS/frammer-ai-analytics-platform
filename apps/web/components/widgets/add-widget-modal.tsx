@@ -4,6 +4,8 @@ import { Plus, X } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { semanticMetrics } from "@/lib/analytics/semantic-catalog";
+import type { WarehouseDatasetId } from "@/lib/analytics/warehouse";
 import type { WidgetSchema, WidgetType, WidgetQueryKey } from "@/lib/widgets/types";
 
 const widgetTypes: Array<{ value: WidgetType; label: string; queryKey: WidgetQueryKey }> = [
@@ -12,12 +14,23 @@ const widgetTypes: Array<{ value: WidgetType; label: string; queryKey: WidgetQue
   { value: "bar-chart", label: "Bar Chart", queryKey: "channelPerformance" },
   { value: "pie-chart", label: "Pie Chart", queryKey: "channelPerformance" },
   { value: "table", label: "Table", queryKey: "channelPerformance" },
+  { value: "funnel-chart", label: "Funnel Chart", queryKey: "channelPerformance" },
+  { value: "warehouse-explorer", label: "Warehouse Explorer", queryKey: "videoList" },
   { value: "heatmap", label: "Heatmap Placeholder", queryKey: "qualityHeatmap" },
   { value: "ai-insight", label: "AI Insight Placeholder", queryKey: "aiInsight" }
 ];
 
-const metrics = ["uploaded", "processed", "published", "downloads", "duration", "processing"];
-const dimensions = ["channel", "platform", "company", "user", "outputType"];
+const metrics = semanticMetrics.filter((metric) => metric.available && metric.id !== "publishPlatformHealth");
+const warehouseDatasets: WarehouseDatasetId[] = ["videos", "serviceRequests", "publishSchedules", "clipcutRequests", "trendingSnapshots", "lineage", "qualityIssues"];
+const datasetDimensions: Record<WarehouseDatasetId, string[]> = {
+  videos: ["date", "company", "channel", "user", "language", "videoType", "sourcePlatform", "processingTurnaroundBucket", "status"],
+  serviceRequests: ["date", "company", "channel", "user", "language", "videoType", "serviceType", "sourcePlatform", "status"],
+  publishSchedules: ["date", "company", "channel", "user", "publishPlatform", "status"],
+  clipcutRequests: ["date", "company", "channel", "user", "language", "videoType", "sourcePlatform", "status"],
+  trendingSnapshots: ["date", "trendType", "country"],
+  lineage: ["videoType"],
+  qualityIssues: ["date", "loadRun", "sourceTable", "issueCode", "severity"]
+};
 
 export function AddWidgetModal({
   onAddWidget,
@@ -30,11 +43,13 @@ export function AddWidgetModal({
 }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<WidgetType>("kpi");
-  const [metric, setMetric] = useState("published");
+  const [metric, setMetric] = useState("videosIngested");
   const [dimension, setDimension] = useState("channel");
+  const [dataset, setDataset] = useState<WarehouseDatasetId>("videos");
 
   function createWidget() {
     const selected = widgetTypes.find((item) => item.value === type) ?? widgetTypes[0];
+    const selectedDimension = datasetDimensions[dataset].includes(dimension) ? dimension : datasetDimensions[dataset][0];
     const id = `custom-${type}-${Date.now()}`;
     onAddWidget({
       id,
@@ -44,13 +59,20 @@ export function AddWidgetModal({
       size: type === "kpi" ? "sm" : "lg",
       position: { i: id, x: 0, y: 0, w: type === "kpi" ? 3 : 6, h: type === "kpi" ? 2 : 5, minW: type === "kpi" ? 2 : 3, minH: type === "kpi" ? 2 : 4 },
       visible: true,
-      config: {
-        metric,
-        dimension,
-        metricMode: "count",
-        timeGroup: "day",
-        description: "Added from dashboard metadata. Later NLQ can generate this schema automatically."
-      }
+      config: type === "kpi"
+        ? { metricId: metric, description: "Warehouse-backed semantic KPI." }
+        : {
+            dimension: selectedDimension,
+            description: "Warehouse-backed widget added from dashboard metadata.",
+            warehouseQuery: {
+              dataset,
+              groupBy: type === "warehouse-explorer" ? [datasetDimensions[dataset][0]] : [selectedDimension],
+              metrics: [{ id: "recordCount", aggregation: "count" }],
+              sortBy: "recordCount",
+              sortDirection: "desc",
+              limit: type === "warehouse-explorer" ? 25 : 500
+            }
+          }
     });
     setOpen(false);
   }
@@ -95,8 +117,9 @@ export function AddWidgetModal({
                 </div>
               ) : null}
               <Select label="Widget Type" value={type} options={widgetTypes.map((item) => ({ value: item.value, label: item.label }))} onChange={(value) => setType(value as WidgetType)} />
-              <Select label="Metric" value={metric} options={metrics.map((item) => ({ value: item, label: item }))} onChange={setMetric} />
-              <Select label="Dimension" value={dimension} options={dimensions.map((item) => ({ value: item, label: item }))} onChange={setDimension} />
+              {type === "kpi" ? <Select label="Metric" value={metric} options={metrics.map((item) => ({ value: item.id, label: item.label }))} onChange={setMetric} /> : null}
+              {type !== "kpi" ? <Select label="Dataset" value={dataset} options={warehouseDatasets.map((item) => ({ value: item, label: item }))} onChange={(value) => setDataset(value as WarehouseDatasetId)} /> : null}
+              {type !== "kpi" && type !== "warehouse-explorer" ? <Select label="Dimension" value={datasetDimensions[dataset].includes(dimension) ? dimension : datasetDimensions[dataset][0]} options={datasetDimensions[dataset].map((item) => ({ value: item, label: item }))} onChange={setDimension} /> : null}
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <Button variant="ghost" className="text-slate-700 dark:text-slate-300" onClick={() => setOpen(false)}>Cancel</Button>

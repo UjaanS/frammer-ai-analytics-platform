@@ -9,14 +9,16 @@ import type Groq from "groq-sdk";
 import type { NlqAction } from "./types";
 import { semanticDimensions, semanticMetrics } from "@/lib/analytics/semantic-catalog";
 
-const WIDGET_TYPES = ["kpi", "line-chart", "bar-chart", "pie-chart", "table", "heatmap", "ai-insight"] as const;
+const WIDGET_TYPES = ["kpi", "line-chart", "bar-chart", "pie-chart", "table", "funnel-chart", "warehouse-explorer", "heatmap", "ai-insight"] as const;
 const QUERY_KEYS = ["summary", "timeTrend", "channelPerformance", "platformDistribution", "videoList", "qualityHeatmap", "aiInsight"] as const;
 const PERSONAS = ["client", "admin", "tech"] as const;
 const VIEW_MODES = ["split", "overlay"] as const;
 const CONTEXT_IDS = ["context-a", "context-b"] as const;
 const METRIC_MODES = ["count", "duration"] as const;
 const TIME_GROUPS = ["day", "month", "year"] as const;
-const SEMANTIC_METRICS = semanticMetrics.map((metric) => metric.id);
+const SEMANTIC_METRICS = semanticMetrics.filter((metric) => metric.available).map((metric) => metric.id);
+const WAREHOUSE_DATASETS = ["videos", "serviceRequests", "publishSchedules", "clipcutRequests", "trendingSnapshots", "lineage", "qualityIssues"] as const;
+const WAREHOUSE_AGGREGATIONS = ["count", "sum", "avg", "min", "max", "rate"] as const;
 
 // Used both in the tool descriptions and in the validation step.
 export const allowedValues = {
@@ -38,7 +40,9 @@ export const allowedValues = {
   metricModes: METRIC_MODES,
   timeGroups: TIME_GROUPS,
   semanticMetrics: SEMANTIC_METRICS,
-  semanticDimensions
+  semanticDimensions,
+  warehouseDatasets: WAREHOUSE_DATASETS,
+  warehouseAggregations: WAREHOUSE_AGGREGATIONS
 } as const;
 
 // Internal shape — { name, description, parameters } per tool. Wrapped into
@@ -120,7 +124,8 @@ const rawTools: RawTool[] = [
     description:
       "Add a new widget to the dashboard. The widget is placed at the top, pushing existing widgets down. " +
       "Pick the queryKey that matches the data shape the widget needs: summary (single totals), timeTrend (time series), " +
-      "channelPerformance (per-channel), platformDistribution (per-platform), videoList (record list), qualityHeatmap, aiInsight.",
+      "channelPerformance (grouped categories), platformDistribution (per-platform), videoList (record list), qualityHeatmap, aiInsight. " +
+      "For warehouse-backed charts, tables, funnels, and explorers include config.warehouseQuery.",
     parameters: {
       type: "object",
       properties: {
@@ -130,13 +135,15 @@ const rawTools: RawTool[] = [
         config: {
           type: "object",
           properties: {
-            metric: { type: "string", description: "For kpi widgets: uploaded | processed | published | downloads | publishRate | avgProcessing" },
+            metric: { type: "string", description: "Legacy compatibility alias. Prefer metricId for new KPI widgets." },
             metricId: { type: "string", enum: [...SEMANTIC_METRICS], description: "Canonical semantic metric id. Prefer this for SQL-backed metrics." },
             dimension: { type: "string" },
             dimensionIds: { type: "array", items: { type: "string", enum: [...semanticDimensions] } },
             metricMode: { type: "string", enum: [...METRIC_MODES] },
             timeGroup: { type: "string", enum: [...TIME_GROUPS] },
             description: { type: "string" }
+            ,
+            warehouseQuery: warehouseQuerySchema()
           }
         }
       },
@@ -169,6 +176,8 @@ const rawTools: RawTool[] = [
             metricMode: { type: "string", enum: [...METRIC_MODES] },
             timeGroup: { type: "string", enum: [...TIME_GROUPS] },
             description: { type: "string" }
+            ,
+            warehouseQuery: warehouseQuerySchema()
           }
         }
       },
@@ -182,6 +191,17 @@ const rawTools: RawTool[] = [
       type: "object",
       properties: {},
       additionalProperties: false
+    }
+  },
+  {
+    name: "open_explorer",
+    description: "Open the warehouse explorer for a record-level investigation using a dataset, filters, grouping, and metrics.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: warehouseQuerySchema()
+      },
+      required: ["query"]
     }
   }
 ];
@@ -280,6 +300,11 @@ export function validateActions(
       }
       case "reset_dashboard":
         break;
+      case "open_explorer":
+        if (!WAREHOUSE_DATASETS.includes(action.input.query.dataset)) {
+          return `Unknown warehouse dataset: ${action.input.query.dataset}`;
+        }
+        break;
       default:
         return `Unknown action: ${(action as { name: string }).name}`;
     }
@@ -303,12 +328,42 @@ export function allowedValuesForWarehouse(filters?: Record<string, string[]>) {
   };
 }
 
-function validateSemanticConfig(config?: { metricId?: string; dimensionIds?: string[] }): string | null {
+function validateSemanticConfig(config?: { metricId?: string; dimensionIds?: string[]; warehouseQuery?: { dataset: string } }): string | null {
   if (config?.metricId && !SEMANTIC_METRICS.includes(config.metricId as (typeof SEMANTIC_METRICS)[number])) {
     return `Unknown semantic metric: ${config.metricId}`;
   }
   const unknownDimension = config?.dimensionIds?.find(
     (dimension) => !semanticDimensions.includes(dimension as (typeof semanticDimensions)[number])
   );
-  return unknownDimension ? `Unknown semantic dimension: ${unknownDimension}` : null;
+  if (unknownDimension) return `Unknown semantic dimension: ${unknownDimension}`;
+  if (config?.warehouseQuery && !WAREHOUSE_DATASETS.includes(config.warehouseQuery.dataset as (typeof WAREHOUSE_DATASETS)[number])) {
+    return `Unknown warehouse dataset: ${config.warehouseQuery.dataset}`;
+  }
+  return null;
+}
+
+function warehouseQuerySchema() {
+  return {
+    type: "object",
+    properties: {
+      dataset: { type: "string", enum: [...WAREHOUSE_DATASETS] },
+      groupBy: { type: "array", items: { type: "string" } },
+      metrics: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            aggregation: { type: "string", enum: [...WAREHOUSE_AGGREGATIONS] }
+          },
+          required: ["id", "aggregation"]
+        }
+      },
+      fixedDimensionFilters: { type: "object", additionalProperties: { type: "string" } },
+      sortBy: { type: "string" },
+      sortDirection: { type: "string", enum: ["asc", "desc"] },
+      limit: { type: "number" }
+    },
+    required: ["dataset", "metrics"]
+  };
 }

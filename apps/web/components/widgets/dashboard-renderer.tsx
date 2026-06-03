@@ -1,11 +1,12 @@
 "use client";
 
 import { RotateCcw, Wand2 } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import type { Layout } from "react-grid-layout";
 
 import { AddWidgetModal } from "@/components/widgets/add-widget-modal";
+import { WarehouseInvestigationDialog } from "@/components/analytics/warehouse-investigation-dialog";
 import { WidgetRenderer } from "@/components/widgets/widget-registry";
 import { Button } from "@/components/ui/button";
 import { useDashboardState } from "@/hooks/use-dashboard-state";
@@ -18,6 +19,7 @@ import type {
   WidgetConfig,
   WidgetSchema
 } from "@/lib/widgets/types";
+import type { WarehouseQueryRequest } from "@/lib/analytics/warehouse";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -54,9 +56,11 @@ export function DashboardRenderer({
   showActions = true
 }: DashboardRendererProps) {
   const dashboard = useDashboardState(definition);
+  const [investigation, setInvestigation] = useState<WarehouseQueryRequest>();
 
   return (
-    <DashboardGrid
+    <>
+      <DashboardGrid
       definition={definition}
       widgets={dashboard.widgets}
       layout={dashboard.layout}
@@ -73,7 +77,10 @@ export function DashboardRenderer({
       removeWidget={dashboard.removeWidget}
       resetDashboard={dashboard.resetDashboard}
       organizeDashboard={dashboard.organizeDashboard}
-    />
+      openInvestigation={setInvestigation}
+      />
+      <WarehouseInvestigationDialog query={investigation} onClose={() => setInvestigation(undefined)} />
+    </>
   );
 }
 
@@ -95,6 +102,7 @@ export type DashboardGridProps = {
   removeWidget: (widgetId: string) => void;
   resetDashboard: () => void;
   organizeDashboard: () => void;
+  openInvestigation?: (query: WarehouseQueryRequest) => void;
 };
 
 export function DashboardGrid({
@@ -113,7 +121,8 @@ export function DashboardGrid({
   addWidget,
   removeWidget,
   resetDashboard,
-  organizeDashboard
+  organizeDashboard,
+  openInvestigation
 }: DashboardGridProps) {
   const visibleWidgets = useMemo(
     () => widgets.filter((widget) => widget.visible !== false),
@@ -243,7 +252,8 @@ export function DashboardGrid({
                 viewMode,
                 syncHover,
                 setWidgetConfig: updateWidgetConfig,
-                removeWidget
+                removeWidget,
+                openInvestigation
               }}
             />
           </div>

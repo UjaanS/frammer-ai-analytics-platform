@@ -14,3 +14,14 @@ __pycache__
 *.tsbuildinfo
 coverage
 .DS_Store
+
+# Browser profiles and generated local test artifacts
+artifacts/**/chrome-profile/
+artifacts/**/audit-chrome-profile/
+artifacts/runtime/
+test-results/
+playwright-report/
+blob-report/
+*.har
+*.trace.zip
+*.webm

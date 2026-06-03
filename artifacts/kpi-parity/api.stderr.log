@@ -1,0 +1,11 @@
+INFO:     Will watch for changes in these directories: ['C:\\Users\\ujaan\\Documents\\GitHub\\frammer-ai-analytics-platform']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [28468] using WatchFiles
+INFO:     Started server process [31044]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'apps\api\app\services\semantic_metrics.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [31044]

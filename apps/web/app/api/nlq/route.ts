@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { buildSystemPrompt } from "@/lib/nlq/system-prompt";
 import { tools, validateActions } from "@/lib/nlq/tools";
 import type { NlqAction, NlqRequest, NlqResponse } from "@/lib/nlq/types";
+import type { WarehouseCatalog } from "@/lib/analytics/warehouse";
 
 export const runtime = "nodejs";
 // Don't pre-render this endpoint at build time; it depends on env + request body.
@@ -44,7 +45,8 @@ export async function POST(request: Request): Promise<NextResponse<NlqResponse>>
   }
 
   const client = new Groq({ apiKey });
-  const warehouseFilters = await loadWarehouseFilters();
+  const warehouseCatalog = await loadWarehouseCatalog();
+  const warehouseFilters = warehouseCatalog?.filters;
 
   // Llama 3.3 70B is good at tool calling but occasionally returns a
   // non-standard `<function=name{...}` template instead of proper
@@ -56,7 +58,7 @@ export async function POST(request: Request): Promise<NextResponse<NlqResponse>>
       max_tokens: MAX_TOKENS,
       temperature: 0,
       messages: [
-        { role: "system", content: buildSystemPrompt(state, warehouseFilters) },
+        { role: "system", content: buildSystemPrompt(state, warehouseFilters, warehouseCatalog) },
         { role: "user", content: query.trim() }
       ],
       tools,
@@ -128,13 +130,13 @@ export async function POST(request: Request): Promise<NextResponse<NlqResponse>>
   });
 }
 
-async function loadWarehouseFilters(): Promise<Record<string, string[]> | undefined> {
+async function loadWarehouseCatalog(): Promise<WarehouseCatalog | undefined> {
   const apiBaseUrl = process.env.ANALYTICS_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
   try {
     const response = await fetch(`${apiBaseUrl}/analytics/warehouse/catalog`, { cache: "no-store" });
     if (!response.ok) return undefined;
-    const payload = await response.json() as { data?: { filters?: Record<string, string[]> } };
-    return payload.data?.filters;
+    const payload = await response.json() as { data?: WarehouseCatalog };
+    return payload.data;
   } catch {
     return undefined;
   }

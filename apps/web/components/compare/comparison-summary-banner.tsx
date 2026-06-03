@@ -8,11 +8,11 @@ import { useWidgetData } from "@/lib/widgets/use-widget-data";
 import type { DashboardContext } from "@/lib/widgets/types";
 
 const metrics = [
-  { key: "uploaded", label: "Uploaded" },
-  { key: "processed", label: "Processed" },
-  { key: "published", label: "Published" },
-  { key: "downloads", label: "Downloads" },
-  { key: "publishRate", label: "Publish Rate" }
+  { key: "videosIngested", label: "Videos Ingested" },
+  { key: "generatedOutputs", label: "Generated Outputs" },
+  { key: "processingBacklog", label: "Processing Backlog" },
+  { key: "serviceBacklog", label: "Service Backlog" },
+  { key: "publishThroughput", label: "Publish Throughput" }
 ];
 
 type ComparisonSummaryBannerProps = {

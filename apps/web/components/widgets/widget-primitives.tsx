@@ -21,7 +21,7 @@ export function SimpleDataTable({
     <div className="flex h-full min-w-0 flex-col overflow-hidden">
       {title ? <h3 className="mb-2 text-sm font-black text-slate-900 dark:text-white">{title}</h3> : null}
       <div className="min-h-0 overflow-auto">
-        <table className="w-full min-w-[520px] border-collapse text-left text-sm">
+        <table className="min-w-full border-collapse text-left text-sm">
           <thead>
             <tr>
               {columns.map((column) => (

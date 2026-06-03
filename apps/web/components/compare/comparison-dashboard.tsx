@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import { useDashboardState } from "@/hooks/use-dashboard-state";
 import { useComparisonDashboardState } from "@/hooks/use-comparison-dashboard-state";
 import { ComparisonSummaryBanner } from "@/components/compare/comparison-summary-banner";
+import { WarehouseInvestigationDialog } from "@/components/analytics/warehouse-investigation-dialog";
 import { ComparisonToolbar } from "@/components/compare/comparison-toolbar";
 import { ContextFilterPanel } from "@/components/compare/context-filter-panel";
 import { NlqInput } from "@/components/compare/nlq-input";
@@ -14,6 +15,7 @@ import { applyNlqActions } from "@/lib/nlq/apply-actions";
 import type { NlqContextSnapshot, NlqResponse } from "@/lib/nlq/types";
 import type { Persona } from "@/lib/widgets/dashboard-presets";
 import type { DashboardDefinition } from "@/lib/widgets/types";
+import type { WarehouseQueryRequest } from "@/lib/analytics/warehouse";
 
 type ComparisonDashboardProps = {
   definition: DashboardDefinition;
@@ -23,6 +25,7 @@ type ComparisonDashboardProps = {
 export function ComparisonDashboard({ definition, setPersona }: ComparisonDashboardProps) {
   const splitExportRef = useRef<HTMLDivElement>(null);
   const [exportingSplit, setExportingSplit] = useState(false);
+  const [investigation, setInvestigation] = useState<WarehouseQueryRequest>();
   const comparison = useComparisonDashboardState();
   const [leftContext, rightContext] = comparison.contexts;
   const shouldCompare = comparison.state.compareMode && Boolean(rightContext);
@@ -78,7 +81,8 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
         updateWidgetConfig: dashboard.updateWidgetConfig,
         resetDashboard: dashboard.resetDashboard,
         organizeDashboard: dashboard.organizeDashboard,
-        layoutMode: isSplitCompare ? "comparison" : "dashboard"
+        layoutMode: isSplitCompare ? "comparison" : "dashboard",
+        openExplorer: setInvestigation
       });
 
       return { summary: result.summary };
@@ -199,6 +203,7 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
                     removeWidget={dashboard.removeWidget}
                     resetDashboard={dashboard.resetDashboard}
                     organizeDashboard={dashboard.organizeDashboard}
+                    openInvestigation={setInvestigation}
                   />
                 </section>
               ))}
@@ -221,8 +226,10 @@ export function ComparisonDashboard({ definition, setPersona }: ComparisonDashbo
           removeWidget={dashboard.removeWidget}
           resetDashboard={dashboard.resetDashboard}
           organizeDashboard={dashboard.organizeDashboard}
+          openInvestigation={setInvestigation}
         />
       )}
+      <WarehouseInvestigationDialog query={investigation} onClose={() => setInvestigation(undefined)} />
     </div>
   );
 }

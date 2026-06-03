@@ -15,8 +15,8 @@ from apps.api.app.schemas.analytics import AnalyticsFilterState, WarehouseMetric
 DATASET_CATALOG = {
     "videos": {
         "label": "Videos",
-        "dimensions": ["date", "company", "channel", "user", "language", "videoType", "sourcePlatform", "status"],
-        "metrics": ["recordCount", "publishedCount", "durationSeconds", "processingSeconds", "metadataCompleteness", "completionRate", "errorRate"],
+        "dimensions": ["date", "company", "channel", "user", "language", "videoType", "sourcePlatform", "processingTurnaroundBucket", "status"],
+        "metrics": ["recordCount", "publishedCount", "durationSeconds", "processingSeconds", "metadataCompleteness", "completionRate", "errorRate", "outputYield"],
     },
     "serviceRequests": {
         "label": "Service requests",
@@ -45,7 +45,7 @@ DATASET_CATALOG = {
     },
     "qualityIssues": {
         "label": "Data-quality issues",
-        "dimensions": ["date", "sourceTable", "issueCode", "severity"],
+        "dimensions": ["date", "loadRun", "sourceTable", "issueCode", "severity"],
         "metrics": ["recordCount"],
     },
 }
@@ -63,6 +63,45 @@ class WarehouseQueryService:
         self.repository = repository
 
     async def query(self, request: WarehouseQueryRequest) -> WarehouseQueryResult:
+        if settings.use_sql_aggregation and hasattr(self.repository, "list_warehouse_query_rows"):
+            groups = await self.repository.aggregate_warehouse_query(request)
+            rows = await self.repository.list_warehouse_query_rows(request)
+            groups = sort_rows(groups, request.sortBy or _default_sort(request.metrics), request.sortDirection)
+            latest = await self.repository.latest_load_run()
+            total_rows = (
+                await self.repository.count_warehouse_query_rows(request, filtered=False)
+                if hasattr(self.repository, "count_warehouse_query_rows")
+                else len(rows)
+            )
+            filtered_rows = (
+                await self.repository.count_warehouse_query_rows(request, filtered=True)
+                if hasattr(self.repository, "count_warehouse_query_rows")
+                else len(rows)
+            )
+            return WarehouseQueryResult(
+                rows=rows,
+                groups=groups[: request.limit],
+                meta={
+                    "source": "sql",
+                    "availability": "available",
+                    "dataset": request.dataset,
+                    "totalRows": total_rows,
+                    "filteredRows": filtered_rows,
+                    "asOf": latest.finished_at.isoformat() if latest and latest.finished_at else None,
+                    "aggregation": "sql",
+                    "canonicalQuery": {
+                        "metric": [metric.id for metric in request.metrics],
+                        "dimensions": request.groupBy,
+                        "filters": request.filters.model_dump(),
+                        "grain": "none",
+                        "comparison": None,
+                        "sort": request.sortBy,
+                        "limit": request.limit,
+                        "dataset": request.dataset,
+                    },
+                },
+            )
+
         rows = await self._dataset_rows(request.dataset)
         invalid_filters = set(request.dimensionFilters) - set(DATASET_CATALOG[request.dataset]["dimensions"])
         if invalid_filters:
@@ -110,10 +149,12 @@ class WarehouseQueryService:
                 "videoType",
                 "serviceType",
                 "sourcePlatform",
+                "processingTurnaroundBucket",
                 "publishPlatform",
                 "status",
                 "trendType",
                 "country",
+                "loadRun",
                 "sourceTable",
                 "issueCode",
                 "severity",
@@ -170,6 +211,7 @@ class WarehouseQueryService:
             {
                 "id": row.id,
                 "date": _iso(row.created_at),
+                "loadRun": row.load_run_id,
                 "sourceTable": row.source_table,
                 "sourceKey": row.source_key,
                 "issueCode": row.issue_code,
@@ -262,6 +304,10 @@ def calculate_metric(rows: list[dict[str, Any]], metric: WarehouseMetricRequest)
         return _rate(rows, {"done", "completed"}, {"done", "completed", "error", "scheduled", "not_started", "in_progress", "queued"})
     if metric.id == "errorRate":
         return _rate(rows, {"error"}, {"done", "completed", "error", "not_started", "in_progress", "queued"})
+    if metric.id == "outputYield":
+        originals = sum(str(row.get("videoType", "")).lower() == "original" for row in rows)
+        generated = sum(str(row.get("videoType", "")).lower() != "original" for row in rows)
+        return round(generated / max(1, originals), 2)
 
     field = metric.id
     values = [float(row[field]) for row in rows if isinstance(row.get(field), (int, float))]
@@ -312,6 +358,7 @@ def _video_row(row: dict[str, Any]) -> dict[str, Any]:
         "videoMd5": video.video_md5,
         "durationSeconds": video.duration_seconds,
         "processingSeconds": video.total_time_taken_seconds,
+        "processingTurnaroundBucket": _processing_turnaround_bucket(video.total_time_taken_seconds),
         "metadataCompleteness": round(sum(bool(value) for value in metadata) / 6 * 100, 2),
         "parentVideoId": video.parent_source_video_id,
         "searchText": _search_text(video.source_id, video.video_md5, video.headline, video.filename, row["company_name"], row["channel_name"], row["user_name"], video.language, video.video_type, video.source_url_type, video.status_label),
@@ -373,6 +420,20 @@ def _joined_video_dimensions(row: dict[str, Any] | None) -> dict[str, Any]:
 def _rate(rows: list[dict[str, Any]], numerators: set[str], denominators: set[str]) -> float:
     classified = [row for row in rows if row.get("status") in denominators]
     return round(sum(row.get("status") in numerators for row in classified) / max(1, len(classified)) * 100, 2)
+
+
+def _processing_turnaround_bucket(value: int | None) -> str:
+    if value is None:
+        return "Unknown"
+    if value < 60:
+        return "<1m"
+    if value <= 300:
+        return "1-5m"
+    if value <= 900:
+        return "5-15m"
+    if value <= 3600:
+        return "15-60m"
+    return ">60m"
 
 
 def _date(value: str | None) -> date | None:
