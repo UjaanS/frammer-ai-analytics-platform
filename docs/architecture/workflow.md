@@ -2,7 +2,7 @@
 
 ## Canonical Paths
 
-- Canonical repository root: `set-up-the-complete-project-architecture`
+- Canonical repository root: `frammer-ai-analytics-platform`
 - Web app (Vercel target): `apps/web`
 - API app: `apps/api`
 - Shared package area: `packages/*`
